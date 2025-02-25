@@ -1,0 +1,72 @@
+[{
+  "_id": {
+    "$oid": "67bbb79d8ec1451fd5b98c60"
+  },
+  "ticket_id": 1,
+  "message": {
+    "type": "text",
+    "content": "Pozdravljeni, potrebujem pomoč pri VPN povezavi."
+  },
+  "created_at": {
+    "$date": "2025-02-24T10:00:00.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "67bbb79d8ec1451fd5b98c61"
+  },
+  "ticket_id": 1,
+  "message": {
+    "type": "image",
+    "content": "https://example.com/screenshot.png"
+  },
+  "created_at": {
+    "$date": "2025-02-24T10:05:00.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "67bbb79d8ec1451fd5b98c62"
+  },
+  "ticket_id": 1,
+  "message": {
+    "type": "document",
+    "content": {
+      "$binary": {
+        "base64": "JVBERi0xLjQKJQ==",
+        "subType": "00"
+      }
+    }
+  },
+  "created_at": {
+    "$date": "2025-02-24T10:10:00.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "67bd9cff9068163b58f40f10"
+  },
+  "ticket_id": 2,
+  "message": {
+    "type": "text",
+    "content": "To je testno sporočilo"
+  },
+  "created_at": {
+    "$date": "2025-02-25T10:35:43.489Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67bd9db59068163b58f40f16"
+  },
+  "ticket_id": 2,
+  "message": {
+    "type": "text",
+    "content": "To je testno sporočilo2"
+  },
+  "created_at": {
+    "$date": "2025-02-25T10:38:45.690Z"
+  },
+  "__v": 0
+}]
