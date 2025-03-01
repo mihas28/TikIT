@@ -73,19 +73,23 @@ app.get('/chats/ticket/:ticket_id', authenticateJWT, async (req: Request, res: R
 // **API endpoint za ustvarjanje novega chat sporočila**
 app.post('/chat', authenticateJWT, async (req: Request, res: Response) => {
     try {
-        const { ticket_id, message } = req.body as { ticket_id: number; message: { type: string; content: string | Buffer } };
+        const { ticket_id, message, private: isPrivate } = req.body as { 
+          ticket_id: number; 
+          message: { type: string; content: string | Buffer };
+          private: boolean;
+        };
 
-        if (!ticket_id || !message || !message.type || !message.content) {
-            res.status(400).json({ error: 'Manjkajoči podatki: ticket_id, message.type, message.content' });
+        if (!ticket_id || !message || !message.type || !message.content || isPrivate === undefined) {
+            res.status(400).json({ error: 'Manjkajoči podatki: ticket_id, message.type, message.content, private' });
             return;
         }
 
         if (!['text', 'image', 'document'].includes(message.type)) {
-            res.status(400).json({ error: 'Neveljaven tip sporočila' })
+            res.status(400).json({ error: 'Neveljaven tip sporočila' });
             return;
         }
         
-        const newChat = await createChat(ticket_id, message);
+        const newChat = await createChat(ticket_id, message, isPrivate);
         res.status(201).json(newChat);
     } catch (error) {
         console.error('Napaka pri ustvarjanju chat sporočila:', error);

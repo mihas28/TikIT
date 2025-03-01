@@ -42,6 +42,11 @@ const ChatSchema: Schema = new Schema({
       description: 'Vsebina sporočila'
     }
   },
+  private: {
+    type: Boolean,
+    required: true,
+    description: 'Označuje, ali je sporočilo zasebno (vidno samo inženirjem) ali javno (vidno tudi klicatelju)'
+  },
   created_at: {
     type: Date,
     required: true,
@@ -49,6 +54,7 @@ const ChatSchema: Schema = new Schema({
     description: 'Čas ustvarjanja sporočila'
   }
 });
+
 
 // **Ustvari model za "chat" ali poveži na obstoječega**
 const ChatModel: Model<IChat> = mongoose.models.chat || mongoose.model<IChat>('chat', ChatSchema, 'chat');
@@ -78,19 +84,20 @@ export const getChatsByTicketId = async (ticketId: number): Promise<IChat[]> => 
   };
 
 // **Funkcija za ustvarjanje novega chat sporočila v MongoDB**
-export const createChat = async (ticket_id: number, message: { type: string, content: string | Buffer }) => {
-    try {
-        const newChat = new ChatModel({
-            ticket_id,
-            message,
-            created_at: new Date() // Samodejno nastavi trenutno uro ob ustvarjanju
-        });
+export const createChat = async (ticket_id: number, message: { type: string, content: string | Buffer }, isPrivate: boolean) => {
+  try {
+      const newChat = new ChatModel({
+          ticket_id,
+          message,
+          private: isPrivate,
+          created_at: new Date() // Samodejno nastavi trenutno uro ob ustvarjanju
+      });
 
-        return await newChat.save();
-    } catch (error) {
-        console.error('Napaka pri shranjevanju chat sporočila v MongoDB:', error);
-        throw error;
-    }
+      return await newChat.save();
+  } catch (error) {
+      console.error('Napaka pri shranjevanju chat sporočila v MongoDB:', error);
+      throw error;
+  }
 };
 
 export default connectMongo;

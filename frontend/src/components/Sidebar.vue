@@ -7,15 +7,16 @@ const authStore = useAuthStore();
 const router = useRouter();
 const isSidebarOpen = ref(false);
 
+// Pridobimo vlogo uporabnika iz JWT tokena
+const userRole = authStore.getUserRole;
+
 // Navigacijske postavke glede na vlogo uporabnika
 const menuItems = ref([
-    // **Meni za vse uporabnike**
     { name: 'Nastavitve', icon: 'bi-gear', path: '/settings', roles: ['user', 'operator', 'admin'] },
     { name: 'Moji zahtevki', icon: 'bi-list-check', path: '/my-tickets', roles: ['user', 'operator', 'admin'] },
     { name: 'Ustvari zahtevek', icon: 'bi-plus-circle', path: '/create-ticket', roles: ['user', 'operator', 'admin'] },
 
-    // **Operatorji in admini**
-    { name: 'Ustvari zahtevek po meri', icon: 'bi-pencil-square', path: '/custom-ticket', roles: ['operator', 'admin'] },
+    { name: 'Ustvari custom zahtevek', icon: 'bi-pencil-square', path: '/custom-ticket', roles: ['operator', 'admin'] },
     { name: 'Moji dodeljeni zahtevki', icon: 'bi-clipboard-check', path: '/assigned-tickets', roles: ['operator', 'admin'] },
     { name: 'Vsi zahtevki', icon: 'bi-folder', path: '/all-tickets', roles: ['operator', 'admin'] },
     { name: 'Podjetja', icon: 'bi-building', path: '/companies', roles: ['operator', 'admin'] },
@@ -23,12 +24,15 @@ const menuItems = ref([
     { name: 'Koledar vzdrževanj', icon: 'bi-calendar', path: '/maintenance-calendar', roles: ['operator', 'admin'] },
     { name: 'Statistike', icon: 'bi-bar-chart-line', path: '/statistics', roles: ['operator', 'admin'] },
 
-    // **Samo admini**
     { name: 'Urejanje sistema', icon: 'bi-tools', path: '/admin-panel', roles: ['admin'] },
 ]);
 
 const toggleSidebar = () => {
     isSidebarOpen.value = !isSidebarOpen.value;
+};
+
+const closeSidebar = () => {
+    isSidebarOpen.value = false;
 };
 
 const logout = () => {
@@ -37,24 +41,30 @@ const logout = () => {
 };
 
 // Expose to template
-defineExpose({ menuItems, isSidebarOpen, toggleSidebar, logout, authStore });
+defineExpose({ menuItems, isSidebarOpen, toggleSidebar, closeSidebar, logout, authStore });
 </script>
 
 <template>
-    <!-- Hamburger menu (viden samo na mobilnih napravah) -->
-    <button class="hamburger-menu d-md-none" @click="toggleSidebar">
-        <i class="bi bi-list"></i>
-    </button>
+    <!-- Navbar zgoraj na mobilnih napravah -->
+    <div class="top-bar d-md-none">
+        <h3 class="text-white">TikIT</h3>
+        <button class="hamburger-menu" @click="toggleSidebar">
+            <i class="bi bi-list"></i>
+        </button>
+    </div>
+
+    <!-- Overlay, ki zatemni ozadje, ko je sidebar odprt -->
+    <div v-if="isSidebarOpen" class="overlay" @click="closeSidebar"></div>
 
     <!-- Sidebar -->
     <div :class="['sidebar', { 'sidebar-open': isSidebarOpen }]">
-        <div class="sidebar-header">
+        <div class="sidebar-header d-none d-md-flex">
             <h3 class="text-white">TikIT</h3>
         </div>
         <ul class="nav flex-column">
             <span v-for="(item, index) in menuItems" :key="index">
-                <li v-if="item.roles.includes(authStore.userRole)">
-                    <router-link :to="item.path" class="nav-link" @click="isSidebarOpen = false">
+                <li v-if="item.roles.includes(userRole)">
+                    <router-link :to="item.path" class="nav-link" @click="closeSidebar">
                         <i :class="`bi ${item.icon}`"></i>
                         <span>{{ item.name }}</span>
                     </router-link>
@@ -70,7 +80,7 @@ defineExpose({ menuItems, isSidebarOpen, toggleSidebar, logout, authStore });
 </template>
 
 <style scoped>
-/* Stranska navigacija (sidebar) */
+/* Sidebar */
 .sidebar {
     width: 250px;
     background-color: #00B0BE;
@@ -83,6 +93,40 @@ defineExpose({ menuItems, isSidebarOpen, toggleSidebar, logout, authStore });
     left: 0;
     top: 0;
     transition: transform 0.3s ease-in-out;
+    z-index: 1050;
+}
+
+/* Top bar (mobilna verzija) */
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background-color: #00B0BE;
+    position: fixed;
+    width: 100%;
+    top: 0;
+    left: 0;
+    z-index: 1100;
+}
+
+/* Sidebar header (prikazan samo na desktop) */
+.sidebar-header {
+    padding: 10px 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Overlay za zatemnitev ozadja, ko je sidebar odprt */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1049;
 }
 
 /* Skrij sidebar na mobilnih napravah, razen če je odprt */
@@ -97,15 +141,12 @@ defineExpose({ menuItems, isSidebarOpen, toggleSidebar, logout, authStore });
 
 /* Hamburger menu */
 .hamburger-menu {
-    position: fixed;
-    top: 15px;
-    left: 15px;
     background: none;
     border: none;
     font-size: 24px;
     color: white;
-    z-index: 1000;
     cursor: pointer;
+    z-index: 1101;
 }
 
 /* Navigacijske povezave */
