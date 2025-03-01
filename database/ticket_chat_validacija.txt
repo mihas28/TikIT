@@ -1,0 +1,47 @@
+{
+  $jsonSchema: {
+    bsonType: 'object',
+    required: [
+      'ticket_id',
+      'message',
+      'created_at',
+      'private'
+    ],
+    properties: {
+      ticket_id: {
+        bsonType: 'int',
+        description: 'ID povezanega zahtevka'
+      },
+      message: {
+        bsonType: 'object',
+        description: 'Vsebina sporočila, lahko tekst, slika ali dokument',
+        properties: {
+          type: {
+            bsonType: 'string',
+            'enum': [
+              'text',
+              'image',
+              'document'
+            ],
+            description: 'Vrsta sporočila'
+          },
+          content: {
+            bsonType: [
+              'string',
+              'binData'
+            ],
+            description: 'Vsebina sporočila (besedilo, URL ali binarni dokument)'
+          }
+        }
+      },
+      'private': {
+        bsonType: 'bool',
+        description: 'Označuje, ali je sporočilo zasebno (vidno samo inženirjem) ali javno (vidno tudi klicatelju)'
+      },
+      created_at: {
+        bsonType: 'date',
+        description: 'Čas ustvarjanja sporočila'
+      }
+    }
+  }
+}
