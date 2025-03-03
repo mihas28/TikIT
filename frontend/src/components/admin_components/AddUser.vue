@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, defineEmits, onMounted } from 'vue';
-import { fetchCompanyData, fetchGroupData, createUser } from '@/api/api';
+import { fetchCompanyData, fetchGroups, createUser } from '@/api/api';
 
 const emit = defineEmits(['close', 'add']);
 
@@ -39,7 +39,7 @@ const companies = ref<Company[]>([]);
 // **Funkcija za nalaganje skupin**
 const loadGroups = async () => {
   try {
-    groups.value = await fetchGroupData();
+    groups.value = await fetchGroups();
   } catch (error) {
     console.error('Napaka pri nalaganju skupin:', error);
   }

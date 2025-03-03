@@ -200,7 +200,7 @@ export const updateCompany = async (
 // **Funkcija za pridobitev vseh pogodb**
 export const getAllContracts = async () => {
     try {
-        const result = await pool.query('SELECT * FROM contract');
+        const result = await pool.query('SELECT c.contract_id, c.short_description, c.description, c.start_date, c.end_date, c.state, c.contract_file, co.company_id, co.company_name FROM contract c, company co WHERE c.company_id = co.company_id');
         return result.rows;
     } catch (error) {
         console.error('Napaka pri pridobivanju pogodb:', error);

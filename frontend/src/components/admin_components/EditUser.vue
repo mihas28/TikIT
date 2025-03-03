@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { defineProps, defineEmits, ref, onMounted } from 'vue';
-import { updateUser, fetchCompanyData, fetchGroupData } from '../../api/api';
+import { updateUser, fetchCompanyData, fetchGroups } from '../../api/api';
 
 const props = defineProps({
   user: {
@@ -28,7 +28,7 @@ const companies = ref<Company[]>([]);
 // **Funkcija za nalaganje skupin**
 const loadGroups = async () => {
   try {
-    groups.value = await fetchGroupData();
+    groups.value = await fetchGroups();
   } catch (error) {
     console.error('Napaka pri nalaganju skupin:', error);
   }

@@ -119,7 +119,7 @@ export const createUser = async (data: Record<string, any>) => {
   };
 
 // **Funkcija za pridobivanje podatkov iz /groups**
-export const fetchGroupData = async () => {
+export const fetchGroups = async () => {
   try {
     const authStore = useAuthStore();
     const response = await axios.get('http://localhost:3000/groups', {
@@ -129,7 +129,133 @@ export const fetchGroupData = async () => {
     });
     return response.data;
   } catch (error) {
-    console.error('Napaka pri pridobivanju podatkov iz /company:', error);
+    console.error('Napaka pri pridobivanju podatkov iz /groups:', error);
     throw error;
+  }
+};
+
+// **Funkcija za posodobitev podatkov skupine**
+export const updateGroup = async (groupId: number, updatedData: Record<string, any>) => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.put(`http://localhost:3000/groups/${groupId}`, updatedData, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Napaka pri posodabljanju skupine (ID: ${groupId}):`, error);
+    throw error;
+  }
+};
+
+// **Funkcija za dodajanje nove skupine**
+export const createGroup = async (data: Record<string, any>) => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.post(`http://localhost:3000/groups/`, data, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+};
+
+// **Funkcija za pridobivanje podatkov iz /contract**
+export const fetchContracts = async () => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.get('http://localhost:3000/contract', {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Napaka pri pridobivanju podatkov iz /groups:', error);
+    throw error;
+  }
+};
+
+// **Funkcija za posodobitev podatkov pogodbe**
+export const updateContract = async (contractId: number, updatedData: Record<string, any>) => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.put(`http://localhost:3000/contract/${contractId}`, updatedData, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Napaka pri posodabljanju pogodbe (ID: ${contractId}):`, error);
+    throw error;
+  }
+};
+
+// **Funkcija za dodajanje nove skupine**
+export const addContract = async (data: Record<string, any>) => {
+  try {
+    const authStore = useAuthStore();
+    
+    // Ustvarimo FormData objekt
+    const formData = new FormData();
+    
+    // Dodamo vse podatke v FormData
+    formData.append('company_id', data.company_id);
+    formData.append('short_description', data.short_description);
+    formData.append('description', data.description);
+    formData.append('start_date', data.start_date);
+    formData.append('end_date', data.end_date);
+    formData.append('state', data.state);
+    
+    // Dodamo datoteko (preverimo ali obstaja)
+    if (data.contract_file) {
+      formData.append('contract_file', data.contract_file);
+    }
+
+    // Pošljemo FormData preko axiosa
+    const response = await axios.post(`http://localhost:3000/contract`, formData, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+        'Content-Type': 'multipart/form-data', 
+      },
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+};
+
+export const openContractFile = async (contractId: number) => {
+  try {
+    const authStore = useAuthStore();
+    const response = await fetch(`http://localhost:3000/contract/${contractId}/file`, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Napaka pri pridobivanju pogodbe.');
+    }
+
+    const blob = await response.blob();
+    const fileURL = URL.createObjectURL(blob);
+
+    // Odpri PDF v novem zavihku
+    window.open(fileURL, '_blank');
+  } catch (error) {
+    console.error('Napaka pri odpiranju pogodbe:', error);
   }
 };

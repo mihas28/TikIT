@@ -1,91 +1,64 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import EditCompanyModal from './EditCompany.vue';
-import AddCompanyModal from './AddCompany.vue';
-import { fetchCompanyData } from '../../api/api';
+import EditContract from './EditContract.vue';
+import AddContract from './AddContract.vue';
+import { fetchContracts, openContractFile } from '@/api/api';
 
-interface Company {
-  company_id: number;
+interface Contract {
+  contract_id: number;
+  short_description: string;
+  description: string;
+  start_date: string;
+  end_date: string;
   company_name: string;
-  country: string;
-  city: string;
-  email: string;
-  phone: string;
-  notes: string;
-  post_code: string;
-  address: string;
+  contract_file: string; // URL do PDF datoteke
 }
 
-const companies = ref<Company[]>([]);
+const contracts = ref<Contract[]>([]);
 const searchQuery = ref('');
-const selectedCompany = ref<Record<string, any>>({});
+const selectedContract = ref<Record<string, any>>({});
 const isEditModalOpen = ref(false);
 const isAddModalOpen = ref(false);
+const sortKey = ref<keyof Contract | null>(null);
+const sortOrder = ref<'asc' | 'desc'>('asc');
 
-// **Shranjuje trenutni stolpec in smer razvrščanja**
-const sortColumn = ref<keyof Company | null>(null);
-const sortDirection = ref<'asc' | 'desc'>('asc');
-
-// **Funkcija za nalaganje podatkov ob zagonu**
-const loadTestData = async () => {
+// **Funkcija za nalaganje pogodb**
+const loadContracts = async () => {
   try {
-    companies.value = await fetchCompanyData();
+    contracts.value = await fetchContracts();
   } catch (error) {
-    console.error('Napaka pri nalaganju podatkov:', error);
+    console.error('Napaka pri nalaganju pogodb:', error);
   }
 };
 
-// **Ko se komponenta naloži, se pokliče loadTestData()**
 onMounted(() => {
-  loadTestData();
+  loadContracts();
 });
 
-// **Funkcija za razvrščanje stolpcev**
-const sortCompanies = (column: keyof Company) => {
-  if (sortColumn.value === column) {
-    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
-  } else {
-    sortColumn.value = column;
-    sortDirection.value = 'asc';
-  }
-
-  companies.value.sort((a, b) => {
-    const valueA = a[column]?.toString().toLowerCase() || '';
-    const valueB = b[column]?.toString().toLowerCase() || '';
-
-    if (valueA < valueB) return sortDirection.value === 'asc' ? -1 : 1;
-    if (valueA > valueB) return sortDirection.value === 'asc' ? 1 : -1;
-    return 0;
+// **Sortiranje pogodb**
+const sortedContracts = computed(() => {
+  if (!sortKey.value) return contracts.value;
+  return [...contracts.value].sort((a, b) => {
+    const valueA = a[sortKey.value!] as string;
+    const valueB = b[sortKey.value!] as string;
+    return (sortOrder.value === 'asc' ? 1 : -1) * valueA.localeCompare(valueB);
   });
-};
-
-// **Filtriranje in sortiranje podatkov**
-const filteredCompanies = computed(() => {
-  let sortedData = [...companies.value];
-
-  // Filtriranje podatkov na podlagi iskalnega polja
-  sortedData = sortedData.filter(company =>
-    Object.values(company).some(value =>
-      String(value).toLowerCase().includes(searchQuery.value.toLowerCase())
-    )
-  );
-
-  return sortedData;
 });
 
-// **Dodaj novo podjetje brez osveževanja**
-const addCompanyToList = (newCompany: Company) => {
-  companies.value.push(newCompany);
-  isAddModalOpen.value = false;
+const sortBy = (key: keyof Contract) => {
+  if (sortKey.value === key) {
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortKey.value = key;
+    sortOrder.value = 'asc';
+  }
 };
 
-// **Odpiranje modala za urejanje**
-const openEditModal = (company: Company) => {
-  selectedCompany.value = company;
+const openEditModal = (contract: any) => {
+  selectedContract.value = contract;
   isEditModalOpen.value = true;
 };
 
-// **Odpiranje modala za dodajanje**
 const openAddModal = () => {
   isAddModalOpen.value = true;
 };
@@ -93,56 +66,40 @@ const openAddModal = () => {
 
 <template>
   <div>
-    <h3>Podjetja</h3>
+    <h3>Pogodbe</h3>
     <input type="text" v-model="searchQuery" placeholder="Išči pogodbe..." />
 
     <table>
       <thead>
         <tr>
-          <th @click="sortCompanies('company_name')">
-            Ime
-            <span v-if="sortColumn === 'company_name'">
-              {{ sortDirection === 'asc' ? '▲' : '▼' }}
-            </span>
-          </th>
-          <th @click="sortCompanies('email')">
-            Email
-            <span v-if="sortColumn === 'email'">
-              {{ sortDirection === 'asc' ? '▲' : '▼' }}
-            </span>
-          </th>
-          <th @click="sortCompanies('phone')">
-            Telefon
-            <span v-if="sortColumn === 'phone'">
-              {{ sortDirection === 'asc' ? '▲' : '▼' }}
-            </span>
-          </th>
-          <th @click="sortCompanies('city')">
-            Mesto
-            <span v-if="sortColumn === 'city'">
-              {{ sortDirection === 'asc' ? '▲' : '▼' }}
-            </span>
-          </th>
+          <th @click="sortBy('short_description')">Kratek opis {{ sortKey === 'short_description' ? (sortOrder === 'asc' ? '▲' : '▼') : '' }}</th>
+          <th @click="sortBy('start_date')">Začetek {{ sortKey === 'start_date' ? (sortOrder === 'asc' ? '▲' : '▼') : '' }}</th>
+          <th @click="sortBy('end_date')">Konec {{ sortKey === 'end_date' ? (sortOrder === 'asc' ? '▲' : '▼') : '' }}</th>
+          <th @click="sortBy('company_name')">Podjetje {{ sortKey === 'company_name' ? (sortOrder === 'asc' ? '▲' : '▼') : '' }}</th>
+          <th>Pogodba</th>
           <th>Dejanja</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="company in filteredCompanies" :key="company.company_id">
-          <td>{{ company.company_name }}</td>
-          <td>{{ company.email }}</td>
-          <td>{{ company.phone }}</td>
-          <td>{{ company.city }}</td>
+        <tr v-for="contract in sortedContracts" :key="contract.contract_id">
+          <td>{{ contract.short_description }}</td>
+          <td>{{ contract.start_date }}</td>
+          <td>{{ contract.end_date }}</td>
+          <td>{{ contract.company_name }}</td>
           <td>
-            <button class="btn-edit" @click="openEditModal(company)">Uredi</button>
+            <i class="bi bi-file-earmark-pdf" @click="openContractFile(contract.contract_id)"></i>
+          </td>
+          <td>
+            <button class="btn-edit" @click="openEditModal(contract.contract_id)">Uredi</button>
           </td>
         </tr>
       </tbody>
     </table>
 
-    <button class="btn-add" @click="openAddModal">Dodaj novo podjetje</button>
+    <button class="btn-add" @click="openAddModal">Dodaj novo pogodbo</button>
 
-    <EditCompanyModal v-if="isEditModalOpen" :company="selectedCompany" @close="isEditModalOpen = false" />
-    <AddCompanyModal v-if="isAddModalOpen" @close="isAddModalOpen = false" @add="addCompanyToList"/>
+    <EditContract v-if="isEditModalOpen" :contract="selectedContract" @close="isEditModalOpen = false" />
+    <AddContract v-if="isAddModalOpen" @close="isAddModalOpen = false" />
   </div>
 </template>
 
@@ -152,22 +109,11 @@ table {
   border-collapse: collapse;
   margin-top: 10px;
 }
-
-th {
+th, td {
   padding: 10px;
   border-bottom: 1px solid #ddd;
   cursor: pointer;
 }
-
-th:hover {
-  background-color: rgba(0, 176, 190, 0.2);
-}
-
-td {
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
-}
-
 .btn-edit {
   background-color: #f0ad4e;
   color: white;
@@ -175,11 +121,9 @@ td {
   border: none;
   cursor: pointer;
 }
-
 button, input {
   border-radius: 5px;
 }
-
 .btn-add {
   margin-top: 10px;
   padding: 10px;

@@ -41,6 +41,10 @@ const initializeDatabases = async () => {
   console.log('PostgreSQL pool pripravljen.');
 };
 
+// Konfiguracija multer za shranjevanje datotek v pomnilnik
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+
 app.post('/refresh', async (req: Request, res: Response) => {
     refreshToken(req, res);
 });
@@ -223,8 +227,6 @@ app.put('/company/:company_id', authenticateJWT, authorizeRoles('admin'), async 
   }
 });
 
-const upload = multer({ storage: multer.memoryStorage() }); // Shrani datoteko v pomnilnik
-
 // **Pridobitev vseh pogodb**
 app.get('/contract', authenticateJWT, authorizeRoles('admin', 'operator'), async (req: Request, res: Response) => {
     try {
@@ -235,6 +237,32 @@ app.get('/contract', authenticateJWT, authorizeRoles('admin', 'operator'), async
         res.status(500).json({ error: 'Napaka pri dostopu do podatkov pogodb' });
     }
 });
+
+// **Pridobitev ene datoteke pogodbe na podlagi contract_id**
+// @ts-ignore
+app.get('/contract/:id/file', authenticateJWT, async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        // Poizvedba v bazo, da pridobiš binarne podatke pogodbe
+        const contract = await getContractById(parseInt(id, 10));
+
+        if (!contract || !contract.contract_file) {
+            return res.status(404).json({ error: 'Pogodba ali datoteka ne obstaja' });
+        }
+
+        // Nastavi pravilne HTTP glave
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename=contract-${id}.pdf`);
+        
+        // Pošlji binarne podatke
+        res.send(contract.contract_file);
+    } catch (error) {
+        console.error('Napaka pri pridobivanju pogodbe:', error);
+        res.status(500).json({ error: 'Napaka pri pridobivanju pogodbe' });
+    }
+});
+
 
 // **Pridobitev ene pogodbe na podlagi contract_id**
 // @ts-ignore
@@ -515,7 +543,7 @@ app.put('/groups/:group_id', authenticateJWT, authorizeRoles('admin'), async (re
 
       const { group_name, description, email } = req.body;
 
-      if (!group_name || !email) {
+      if (!group_name || !email || !description) {
           return res.status(400).json({ error: 'Manjkajoči podatki' });
       }
 
