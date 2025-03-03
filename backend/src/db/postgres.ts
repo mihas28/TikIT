@@ -2,6 +2,7 @@ import { Pool } from 'pg';
 import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
 import fs from 'fs';
+import e from 'cors';
 
 dotenv.config();
 
@@ -104,7 +105,7 @@ export const registerUser = async (
           [username, hashedPassword, first_name, last_name, email, phone_number, role, company_id, group_id]
       );
 
-      return { id: result.rows[0].user_id, role: result.rows[0].role };
+      return { user_id: result.rows[0].user_id, role: result.rows[0].role };
   } catch (error) {
       console.error('Napaka pri registraciji uporabnika:', error);
       throw error;
@@ -291,8 +292,8 @@ export const updateContract = async (
 export const getAllUsers = async () => {
     try {
         const result = await pool.query(`
-            SELECT user_id, username, first_name, last_name, email, phone_number, role, created_at, updated_at, company_id, group_id 
-            FROM users
+            SELECT u.user_id, u.username, u.first_name, u.last_name, u.email, u.phone_number, u.role, u.created_at, u.updated_at, c.company_id, c.company_name, g.group_id, g.group_name 
+            FROM users u, company c, assigment_group g WHERE u.company_id = c.company_id AND u.group_id = g.group_id
         `);
         return result.rows;
     } catch (error) {
@@ -314,6 +315,33 @@ export const getUserById = async (user_id: number) => {
         throw error;
     }
 };
+
+/*// **Funkcija za dodajanje nove pogodbe**
+export const createUser = async (
+    company_id: number,
+    group_id: number,
+    first_name: string,
+    last_name: string,
+    email: string,
+    phone_number: string,
+    role: string,
+    password: string
+) => {
+    try {
+        const result = await pool.query(
+            `INSERT INTO contract 
+            (company_id, group_id, first_name, last_name, email, phone_number, role, created_at, updated_at) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW()) 
+            RETURNING contract_id`,
+            [company_id, group_id, first_name, last_name, email, phone_number, role, password]
+        );
+
+        return { contract_id: result.rows[0].contract_id };
+    } catch (error) {
+        console.error('Napaka pri dodajanju pogodbe:', error);
+        throw error;
+    }
+};**/
 
 // **Funkcija za posodobitev uporabnika (brez gesla, upoštevano updated_at)**
 export const updateUser = async (
@@ -388,7 +416,7 @@ export const updatePasswordWithoutOld = async (user_id: number, new_password: st
 // **Funkcija za pridobitev vseh skupin**
 export const getAllGroups = async () => {
     try {
-        const result = await pool.query('SELECT * FROM assignment_group');
+        const result = await pool.query('SELECT * FROM assigment_group');
         return result.rows;
     } catch (error) {
         console.error('Napaka pri pridobivanju skupin:', error);
@@ -399,7 +427,7 @@ export const getAllGroups = async () => {
 // **Funkcija za pridobitev skupine na podlagi group_id**
 export const getGroupById = async (group_id: number) => {
     try {
-        const result = await pool.query('SELECT * FROM assignment_group WHERE group_id = $1', [group_id]);
+        const result = await pool.query('SELECT * FROM assigment_group WHERE group_id = $1', [group_id]);
         return result.rows[0] || null;
     } catch (error) {
         console.error(`Napaka pri pridobivanju skupine z ID=${group_id}:`, error);
@@ -411,7 +439,7 @@ export const getGroupById = async (group_id: number) => {
 export const createGroup = async (group_name: string, description: string, email: string) => {
     try {
         const result = await pool.query(
-            `INSERT INTO assignment_group 
+            `INSERT INTO assigment_group 
             (group_name, description, email, created_at, updated_at) 
             VALUES ($1, $2, $3, NOW(), NOW()) 
             RETURNING group_id`,
@@ -429,7 +457,7 @@ export const createGroup = async (group_name: string, description: string, email
 export const updateGroup = async (group_id: number, group_name: string, description: string, email: string) => {
     try {
         const result = await pool.query(
-            `UPDATE assignment_group SET 
+            `UPDATE assigment_group SET 
             group_name = $1, 
             description = $2, 
             email = $3,

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import EditCompanyModal from './EditCompanyModal.vue';
-import AddCompanyModal from './AddCompanyModal.vue';
-import { fetchCompanyData } from '@/api/api';
+import EditCompanyModal from './EditCompany.vue';
+import AddCompanyModal from './AddCompany.vue';
+import { fetchCompanyData } from '../../api/api';
 
 interface Company {
   company_id: number;
@@ -94,7 +94,7 @@ const openAddModal = () => {
 <template>
   <div>
     <h3>Podjetja</h3>
-    <input type="text" v-model="searchQuery" placeholder="Išči podjetja..." />
+    <input type="text" v-model="searchQuery" placeholder="Išči pogodbe..." />
 
     <table>
       <thead>

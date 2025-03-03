@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, defineEmits } from 'vue';
-import { createCompany } from '@/api/api'; // Import funkcije za dodajanje podjetja
+import { createCompany } from '../../api/api'; // Import funkcije za dodajanje podjetja
 
 const emit = defineEmits(['close', 'add']);
 

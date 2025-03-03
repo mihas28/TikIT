@@ -16,7 +16,7 @@ const menuItems = ref([
     { name: 'Moji zahtevki', icon: 'bi-list-check', path: '/my-tickets', roles: ['user', 'operator', 'admin'] },
     { name: 'Ustvari zahtevek', icon: 'bi-plus-circle', path: '/create-ticket', roles: ['user', 'operator', 'admin'] },
 
-    { name: 'Ustvari custom zahtevek', icon: 'bi-pencil-square', path: '/custom-ticket', roles: ['operator', 'admin'] },
+    { name: 'Ustvari zahtevek po meri', icon: 'bi-pencil-square', path: '/custom-ticket', roles: ['operator', 'admin'] },
     { name: 'Moji dodeljeni zahtevki', icon: 'bi-clipboard-check', path: '/assigned-tickets', roles: ['operator', 'admin'] },
     { name: 'Vsi zahtevki', icon: 'bi-folder', path: '/all-tickets', roles: ['operator', 'admin'] },
     { name: 'Podjetja', icon: 'bi-building', path: '/companies', roles: ['operator', 'admin'] },

@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import UserList from '@/components/UserList.vue';
-import CompanyList from '../components/CompanyList.vue';
-import GroupList from '../components/GroupList.vue';
+import UserList from '@/components/admin_components/UserList.vue';
+import CompanyList from '../components/admin_components/CompanyList.vue';
+import GroupList from '../components/admin_components/GroupList.vue';
+import ContractList from '../components/admin_components/ContractList.vue';
 
 const activeTab = ref('users');
 
@@ -19,12 +20,14 @@ const setActiveTab = (tab: string) => {
       <button @click="setActiveTab('users')" :class="{ active: activeTab === 'users' }">Uporabniki</button>
       <button @click="setActiveTab('companies')" :class="{ active: activeTab === 'companies' }">Podjetja</button>
       <button @click="setActiveTab('groups')" :class="{ active: activeTab === 'groups' }">Skupine</button>
+      <button @click="setActiveTab('contracts')" :class="{ active: activeTab === 'contracts' }">Pogodbe</button>
     </nav>
 
     <div class="tab-content">
       <UserList v-if="activeTab === 'users'" />
       <CompanyList v-if="activeTab === 'companies'" />
       <GroupList v-if="activeTab === 'groups'" />
+      <ContractList v-if="activeTab === 'contracts'" />
     </div>
   </div>
 </template>

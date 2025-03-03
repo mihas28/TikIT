@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { defineProps, defineEmits, ref } from 'vue';
-import { updateCompany } from '@/api/api';
+import { updateCompany } from '../../api/api';
 
 const props = defineProps({
   company: {
@@ -67,7 +67,6 @@ const saveCompanyChanges = async () => {
 
       <label>Opombe:</label>
       <textarea v-model="company.notes"></textarea>
-
       
     <button class="bt-save" @click="saveCompanyChanges" :disabled="isLoading">
         {{ isLoading ? 'Shranjevanje...' : 'Shrani' }}

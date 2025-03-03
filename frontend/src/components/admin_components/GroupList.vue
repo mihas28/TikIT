@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import EditGroupModal from './EditGroupModal.vue';
-import AddGroupModal from './AddGroupModal.vue';
+import EditGroupModal from './EditGroup.vue';
+import AddGroupModal from './AddGroup.vue';
 
 const groups = ref([
   {

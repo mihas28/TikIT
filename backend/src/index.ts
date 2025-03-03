@@ -110,8 +110,8 @@ app.post('/register', authenticateJWT, authorizeRoles('admin'), async (req: Requ
       const newUser = await registerUser(username, password, first_name, last_name, email, phone_number, role);
 
       // Ustvari JWT tokena z vlogo
-      const accessToken = generateAccessToken(newUser.id, newUser.role);
-      const refreshToken = generateRefreshToken(newUser.id, newUser.role);
+      const accessToken = generateAccessToken(newUser.user_id, newUser.role);
+      const refreshToken = generateRefreshToken(newUser.user_id, newUser.role);
 
       res.status(201).json({ accessToken, refreshToken });
   } catch (error) {
@@ -346,6 +346,45 @@ app.get('/users/:user_id', authenticateJWT, authorizeRoles('admin', 'operator'),
   }
 });
 
+/*// **Dodajanje novega uporabnika**
+// @ts-ignore
+app.post('/users', authenticateJWT, authorizeRoles('admin'), async (req: Request, res: Response) => {
+  try {
+      const { first_name, last_name, email, phone_number, role, company_id, group_id, password } = req.body;
+
+      if (!first_name || !last_name || !email || !phone_number || !role || !company_id || !group_id || !password) {
+          return res.status(400).json({ error: 'Manjkajoči podatki' });
+      }
+
+      const user = await createUser(first_name, last_name, email, phone_number, role, company_id, group_id, password);
+
+      res.status(201).json(user);
+    } catch (error) {
+        console.error('Napaka pri dodajanju uporabnika:', error);
+        res.status(500).json({ error: 'Napaka pri dodajanju uporabnika' });
+    }
+});*/   
+
+// **API endpoint za registracijo novega uporabnika**
+// @ts-ignore
+app.post('/users', authenticateJWT, authorizeRoles('admin'), async (req: Request, res: Response) => {
+    try {
+        const { username, password, first_name, last_name, email, phone_number, role, company_id, group_id } = req.body;
+  
+        if (!username || !password || !first_name || !last_name || !email || !phone_number || !role || !company_id || !group_id) {
+            return res.status(400).json({ error: 'Manjkajoči podatki za registracijo.' });
+        }
+  
+        const newUser = await registerUser(username, password, first_name, last_name, email, phone_number, role, company_id, group_id);
+  
+        res.status(201).json({ newUser });
+    
+    } catch (error) {
+        console.error('Napaka pri registraciji:', error);
+        res.status(500).json({ error: 'Napaka pri obdelavi registracije' });
+    }
+  });
+
 // **Posodobitev uporabnika**
 // @ts-ignore
 app.put('/users/:user_id', authenticateJWT, authorizeRoles('admin', 'operator'), async (req: Request, res: Response) => {
@@ -371,29 +410,48 @@ app.put('/users/:user_id', authenticateJWT, authorizeRoles('admin', 'operator'),
 
 // **Posodobitev gesla z zahtevanim starim geslom**
 // @ts-ignore
-app.put('/users/:user_id/password', authenticateJWT, async (req: Request, res: Response) => {
-  try {
+app.put('/users/password/user/reset/:user_id', async (req, res) => {
+    try {
+      const { user_id } = req.params;
       const { old_password, new_password } = req.body;
-      const user_id = parseInt(req.params.user_id, 10);
-
-      const result = await updatePasswordWithOld(user_id, old_password, new_password);
-      if (!result.success) {
-          return res.status(400).json({ error: result.message });
+  
+      if (!old_password || !new_password) {
+        return res.status(400).json({ message: 'Manjkajoči podatki!' });
       }
-
-      res.status(200).json({ message: 'Geslo uspešno posodobljeno' });
-  } catch (error) {
-      res.status(500).json({ error: 'Napaka pri posodabljanju gesla' });
-  }
-});
+  
+      const result = await updatePasswordWithoutOld(parseInt(user_id), new_password);
+      
+      if (!result.success) {
+        return res.status(400).json({ message: 'Geslo uspešno ponastavljeno' });
+      }
+  
+      res.json({ message: 'Geslo uspešno posodobljeno!' });
+    } catch (error) {
+      console.error('Napaka pri posodabljanju gesla:', error);
+      res.status(500).json({ message: 'Napaka na strežniku' });
+    }
+  });
 
 // **Posodobitev gesla brez preverjanja starega gesla**
-app.put('/users/:user_id/password/reset', authenticateJWT, authorizeRoles('admin'), async (req: Request, res: Response) => {
-  const { new_password } = req.body;
-  const user_id = parseInt(req.params.user_id, 10);
+app.put('/users/password/admin/reset/:user_id', authenticateJWT, authorizeRoles('admin'), async (req: Request, res: Response): Promise<void> => {
+    try {
+        const user_id = parseInt(req.params.user_id, 10);
+        if (isNaN(user_id)) {
+            res.status(400).json({ error: 'Neveljaven user_id' });
+            return;
+        }
+        const new_password = req.body.updatedData;
 
-  await updatePasswordWithoutOld(user_id, new_password);
-  res.status(200).json({ message: 'Geslo uspešno ponastavljeno' });
+        if (!new_password) {
+            res.status(400).json({ error: 'Manjkajoči podatki' });
+            return;
+        }
+
+        await updatePasswordWithoutOld(user_id, new_password);
+        res.status(200).json({ message: 'Geslo uspešno ponastavljeno' });
+    } catch (error) {
+        res.status(500).json({ error: 'Napaka pri posodabljanju gesla' });
+    }
 });
 
 // **Pridobitev vseh skupin**
