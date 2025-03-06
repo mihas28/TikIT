@@ -246,38 +246,37 @@ export const createContract = async (
 };
 
 // **Funkcija za posodobitev pogodbe**
-export const updateContract = async (
-    contract_id: number,
-    short_description: string,
-    description: string,
-    start_date: string,
-    end_date: string,
-    state: string,
-    contract_file?: Buffer // Datoteka je opcijska pri posodobitvi
-) => {
+export const updateContract = async ({
+    contract_id,
+    company_id,
+    short_description,
+    description,
+    start_date,
+    end_date,
+    state,
+    contract_file,
+}: {
+    contract_id: number;
+    company_id: number;
+    short_description: string;
+    description: string;
+    start_date: string;
+    end_date: string;
+    state: string;
+    contract_file?: Buffer; // Datoteka je opcijska
+}) => {
     try {
         const query = contract_file
-            ? `UPDATE contract SET 
-                short_description = $1, 
-                description = $2, 
-                start_date = $3, 
-                end_date = $4, 
-                state = $5, 
-                contract_file = $6, 
-                updated_at = NOW()
-                WHERE contract_id = $7 RETURNING *`
-            : `UPDATE contract SET 
-                short_description = $1, 
-                description = $2, 
-                start_date = $3, 
-                end_date = $4, 
-                state = $5, 
-                updated_at = NOW()
-                WHERE contract_id = $6 RETURNING *`;
+            ? `UPDATE contract 
+               SET short_description = $1, description = $2, start_date = $3, end_date = $4, state = $5, contract_file = $6, company_id = $7, updated_at = NOW() 
+               WHERE contract_id = $8 RETURNING *`
+            : `UPDATE contract 
+               SET short_description = $1, description = $2, start_date = $3, end_date = $4, state = $5, company_id = $6, updated_at = NOW() 
+               WHERE contract_id = $7 RETURNING *`;
 
         const params = contract_file
-            ? [short_description, description, start_date, end_date, state, contract_file, contract_id]
-            : [short_description, description, start_date, end_date, state, contract_id];
+            ? [short_description, description, start_date, end_date, state, contract_file, company_id, contract_id]
+            : [short_description, description, start_date, end_date, state, company_id, contract_id];
 
         const result = await pool.query(query, params);
 
@@ -287,6 +286,7 @@ export const updateContract = async (
         throw error;
     }
 };
+
 
 // **Funkcija za pridobitev vseh uporabnikov (brez gesla)**
 export const getAllUsers = async () => {

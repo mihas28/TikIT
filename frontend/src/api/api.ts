@@ -185,23 +185,39 @@ export const fetchContracts = async () => {
 };
 
 // **Funkcija za posodobitev podatkov pogodbe**
-export const updateContract = async (contractId: number, updatedData: Record<string, any>) => {
+export const updateContract = async (contractId: number, updatedData: Record<string, any>, file?: File) => {
   try {
-    const authStore = useAuthStore();
-    const response = await axios.put(`http://localhost:3000/contract/${contractId}`, updatedData, {
-      headers: {
-        Authorization: `Bearer ${authStore.accessToken}`,
-        'Content-Type': 'application/json',
-      },
-    });
-    return response.data;
+      const authStore = useAuthStore();
+      const formData = new FormData();
+
+      // **Dodamo tekstovne podatke**
+      formData.append('company_id', updatedData.company_id);
+      formData.append('short_description', updatedData.short_description);
+      formData.append('description', updatedData.description);
+      formData.append('start_date', updatedData.start_date);
+      formData.append('end_date', updatedData.end_date);
+      formData.append('state', updatedData.state);
+
+      // **Preverimo, ali obstaja nova datoteka in jo dodamo**
+      if (file) {
+          formData.append('contract_file', file, file.name);
+      }
+
+      const response = await axios.put(`http://localhost:3000/contract/${contractId}`, formData, {
+          headers: {
+              Authorization: `Bearer ${authStore.accessToken}`,
+              'Content-Type': 'multipart/form-data', // Nastavimo pravilno vsebino za prenos datoteke
+          },
+      });
+
+      return response.data;
   } catch (error) {
-    console.error(`Napaka pri posodabljanju pogodbe (ID: ${contractId}):`, error);
-    throw error;
+      console.error(`Napaka pri posodabljanju pogodbe (ID: ${contractId}):`, error);
+      throw error;
   }
 };
 
-// **Funkcija za dodajanje nove skupine**
+// **Funkcija za dodajanje nove pogodbe**
 export const addContract = async (data: Record<string, any>) => {
   try {
     const authStore = useAuthStore();

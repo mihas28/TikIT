@@ -3,6 +3,11 @@ import { ref, computed, onMounted } from 'vue';
 import EditContract from './EditContract.vue';
 import AddContract from './AddContract.vue';
 import { fetchContracts, openContractFile } from '@/api/api';
+import { format } from 'date-fns';
+
+const formatDate = (isoDate: string) => {
+  return format(new Date(isoDate), 'dd.MM.yyyy'); // Prikaže v obliki "13.03.2025"
+};
 
 interface Contract {
   contract_id: number;
@@ -11,7 +16,7 @@ interface Contract {
   start_date: string;
   end_date: string;
   company_name: string;
-  contract_file: string; // URL do PDF datoteke
+  contract_file: string;
 }
 
 const contracts = ref<Contract[]>([]);
@@ -35,10 +40,19 @@ onMounted(() => {
   loadContracts();
 });
 
-// **Sortiranje pogodb**
+// **Filtriranje pogodb glede na iskalni niz**
+const filteredContracts = computed(() => {
+  return contracts.value.filter(contract =>
+    Object.values(contract).some(value =>
+      String(value).toLowerCase().includes(searchQuery.value.toLowerCase())
+    )
+  );
+});
+
+// **Sortiranje pogodb po iskanih rezultatih**
 const sortedContracts = computed(() => {
-  if (!sortKey.value) return contracts.value;
-  return [...contracts.value].sort((a, b) => {
+  if (!sortKey.value) return filteredContracts.value;
+  return [...filteredContracts.value].sort((a, b) => {
     const valueA = a[sortKey.value!] as string;
     const valueB = b[sortKey.value!] as string;
     return (sortOrder.value === 'asc' ? 1 : -1) * valueA.localeCompare(valueB);
@@ -83,14 +97,14 @@ const openAddModal = () => {
       <tbody>
         <tr v-for="contract in sortedContracts" :key="contract.contract_id">
           <td>{{ contract.short_description }}</td>
-          <td>{{ contract.start_date }}</td>
-          <td>{{ contract.end_date }}</td>
+          <td>{{ formatDate(contract.start_date) }}</td>
+          <td>{{ formatDate(contract.end_date) }}</td>
           <td>{{ contract.company_name }}</td>
           <td>
             <i class="bi bi-file-earmark-pdf" @click="openContractFile(contract.contract_id)"></i>
           </td>
           <td>
-            <button class="btn-edit" @click="openEditModal(contract.contract_id)">Uredi</button>
+            <button class="btn-edit" @click="openEditModal(contract)">Uredi</button>
           </td>
         </tr>
       </tbody>

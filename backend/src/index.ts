@@ -315,21 +315,42 @@ app.post('/contract', upload.single('contract_file'), authenticateJWT, authorize
 // @ts-ignore
 app.put('/contract/:contract_id', authenticateJWT, authorizeRoles('admin'), upload.single('contract_file'), async (req: Request, res: Response) => {
     try {
+
         const contract_id = parseInt(req.params.contract_id, 10);
         if (isNaN(contract_id)) {
             return res.status(400).json({ error: 'Neveljaven contract_id' });
         }
 
-        const { short_description, description, start_date, end_date, state } = req.body;
-        const updatedContract = await updateContract(
-            contract_id,
-            short_description,
-            description,
-            start_date,
-            end_date,
-            state,
-            req.file ? req.file.buffer : undefined // Če je datoteka priložena, jo posodobi
-        );
+        const { company_id, short_description, description, start_date, end_date, state } = req.body;
+
+        if (!company_id || !short_description || !description || !start_date || !end_date || !state) {
+            return res.status(400).json({ error: 'Manjkajoči podatki' });
+        }
+
+        let updatedContract;
+
+        if (req.file) {
+            updatedContract = await updateContract({
+                contract_id,
+                company_id: parseInt(company_id, 10),
+                short_description,
+                description,
+                start_date,
+                end_date,
+                state,
+                contract_file: req.file.buffer, // Shrani binarno datoteko
+            });
+        } else {
+            updatedContract = await updateContract({
+                contract_id,
+                company_id: parseInt(company_id, 10),
+                short_description,
+                description,
+                start_date,
+                end_date,
+                state,
+            });
+        }
 
         if (!updatedContract) {
             return res.status(404).json({ error: 'Pogodba ni najdena' });
