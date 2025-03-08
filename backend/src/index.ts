@@ -12,7 +12,8 @@ import dotenv from 'dotenv';
 import { getPostgresData, getCompany, verifyUser, registerUser, getAllCompanies, 
   getCompanyById, createCompany, updateCompany, getAllContracts, getContractById, createContract, updateContract, getAllUsers, 
   getUserById, updateUser, updatePasswordWithOld, updatePasswordWithoutOld, getAllGroups, getGroupById, createGroup, updateGroup, 
-  getAllTickets, getTicketById, createTicket, updateTicket, getTimeWorkedByUserAndTicket, createTimeWorked, updateTimeWorked  } from './db/postgres';
+  getAllTickets, getTicketById, createTicket, updateTicket, getTimeWorkedByUserAndTicket, createTimeWorked, updateTimeWorked,
+  getAllCompaniesEssential, getAllContractsEssential, getAllUsersEssential, getAllGroupsEssential } from './db/postgres';
 import connectMongo, { getChatsByTicketId, createChat } from './db/mongo';
 import { authenticateJWT, generateAccessToken, generateRefreshToken, refreshToken, authorizeRoles } from './middleware/auth';
 
@@ -161,6 +162,17 @@ app.get('/company', authenticateJWT, authorizeRoles('admin', 'operator'), async 
   }
 });
 
+// **Pridobitev vseh osnovnih podatkov podjetij**
+app.get('/company/essential', authenticateJWT, authorizeRoles('admin', 'operator'), async (req: Request, res: Response) => {
+    try {
+        const companies = await getAllCompaniesEssential();
+        res.status(200).json(companies);
+    } catch (error) {
+        console.error('Napaka pri pridobivanju podjetij:', error);
+        res.status(500).json({ error: 'Napaka pri dostopu do podatkov podjetij' });
+    }
+  });
+
 // **Pridobitev enega podjetja na podlagi company_id**
 // @ts-ignore
 app.get('/company/:company_id', authenticateJWT, async (req: Request, res: Response) => {
@@ -231,6 +243,17 @@ app.put('/company/:company_id', authenticateJWT, authorizeRoles('admin'), async 
 app.get('/contract', authenticateJWT, authorizeRoles('admin', 'operator'), async (req: Request, res: Response) => {
     try {
         const contracts = await getAllContracts();
+        res.status(200).json(contracts);
+    } catch (error) {
+        console.error('Napaka pri pridobivanju pogodb:', error);
+        res.status(500).json({ error: 'Napaka pri dostopu do podatkov pogodb' });
+    }
+});
+
+// **Pridobitev vseh osnovnih podatkov o pogodbah**
+app.get('/contract/essential', authenticateJWT, authorizeRoles('admin', 'operator'), async (req: Request, res: Response) => {
+    try {
+        const contracts = await getAllContractsEssential();
         res.status(200).json(contracts);
     } catch (error) {
         console.error('Napaka pri pridobivanju pogodb:', error);
@@ -374,6 +397,17 @@ app.get('/users', authenticateJWT, authorizeRoles('admin'), async (req: Request,
   }
 });
 
+// **Pridobitev vseh osnovnih podatkov o uporabnikih (brez gesla)**
+app.get('/users/essential', authenticateJWT, authorizeRoles('admin'), async (req: Request, res: Response) => {
+    try {
+        const users = await getAllUsersEssential();
+        res.status(200).json(users);
+    } catch (error) {
+        console.error('Napaka pri pridobivanju uporabnikov:', error);
+        res.status(500).json({ error: 'Napaka pri dostopu do podatkov uporabnikov' });
+    }
+  });
+
 // **Pridobitev enega uporabnika na podlagi user_id (brez gesla)**
 // @ts-ignore
 app.get('/users/:user_id', authenticateJWT, authorizeRoles('admin', 'operator'), async (req: Request, res: Response) => {
@@ -514,6 +548,17 @@ app.get('/groups', authenticateJWT, authorizeRoles('admin', 'operator'), async (
   }
 });
 
+// **Pridobitev osnovnih podatkov o skupinah**
+app.get('/groups/essential', authenticateJWT, authorizeRoles('admin', 'operator'), async (req: Request, res: Response) => {
+    try {
+        const groups = await getAllGroupsEssential();
+        res.status(200).json(groups);
+    } catch (error) {
+        console.error('Napaka pri pridobivanju skupin:', error);
+        res.status(500).json({ error: 'Napaka pri dostopu do podatkov skupin' });
+    }
+  });
+
 // **Pridobitev ene skupine na podlagi group_id**
 // @ts-ignore
 app.get('/groups/:group_id', authenticateJWT, authorizeRoles('admin', 'operator'), async (req: Request, res: Response) => {
@@ -616,13 +661,13 @@ app.get('/tickets/:ticket_id', authenticateJWT, async (req: Request, res: Respon
 // @ts-ignore
 app.post('/tickets', authenticateJWT, async (req: Request, res: Response) => {
   try {
-      const { title, description, impact, urgency, state, type, accepted_at, closed_at, close_notes, close_code, caller_id, parent_ticket_id, group_id } = req.body;
+      const { title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id } = req.body;
 
-      if (!title || !description || !impact || !urgency || !state || !type || !caller_id || !group_id) {
+      if (!title || !description || !impact || !urgency || !state || !type || !caller_id || !group_id || !contract_id) {
           return res.status(400).json({ error: 'Manjkajoči podatki' });
       }
 
-      const newTicket = await createTicket(title, description, impact, urgency, state, type, accepted_at, closed_at, close_notes, close_code, caller_id, parent_ticket_id, group_id);
+      const newTicket = await createTicket(title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id);
       res.status(201).json(newTicket);
   } catch (error) {
       console.error('Napaka pri dodajanju zahtevka:', error);
@@ -679,13 +724,13 @@ app.get('/time-worked/:user_id/:ticket_id', authenticateJWT, authorizeRoles('adm
 // @ts-ignore
 app.post('/time-worked', authenticateJWT, authorizeRoles('admin', 'operator'), async (req: Request, res: Response) => {
   try {
-      const { user_id, ticket_id, time_worked, description } = req.body;
+      const { user_id, ticket_id } = req.body;
 
-      if (!user_id || !ticket_id || !time_worked || !description) {
+      if (!user_id || !ticket_id ) {
           return res.status(400).json({ error: 'Manjkajoči podatki' });
       }
 
-      const newTimeWorked = await createTimeWorked(user_id, ticket_id, time_worked, description);
+      const newTimeWorked = await createTimeWorked(user_id, ticket_id, 0, '');
       res.status(201).json(newTimeWorked);
   } catch (error) {
       console.error('Napaka pri dodajanju vnosa delovnega časa:', error);

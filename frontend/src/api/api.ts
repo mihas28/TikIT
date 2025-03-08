@@ -275,3 +275,105 @@ export const openContractFile = async (contractId: number) => {
     console.error('Napaka pri odpiranju pogodbe:', error);
   }
 };
+
+////////////////////////
+
+// **Funkcija za pridobivanje podatkov iz /company/essential**
+export const fetchCompanyDataCreate = async () => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.get('http://localhost:3000/company/essential', {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Napaka pri pridobivanju podatkov iz /company/essential:', error);
+    throw error;
+  }
+};
+
+  // **Funkcija za pridobivanje podatkov iz /users/essential**
+  export const fetchUsersCreate = async () => {
+    try {
+      const authStore = useAuthStore();
+      const response = await axios.get('http://localhost:3000/users/essential', {
+        headers: {
+          Authorization: `Bearer ${authStore.accessToken}`,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Napaka pri pridobivanju podatkov iz /company/essential:', error);
+      throw error;
+    }
+  };
+
+  // **Funkcija za pridobivanje podatkov iz /contract/essential**
+export const fetchContractsCreate = async () => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.get('http://localhost:3000/contract/essential', {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Napaka pri pridobivanju podatkov iz /groups/essential:', error);
+    throw error;
+  }
+};
+
+// **Funkcija za pridobivanje podatkov iz /groups/essential**
+export const fetchGroupsCreate = async () => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.get('http://localhost:3000/groups/essential', {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Napaka pri pridobivanju podatkov iz /groups/essential:', error);
+    throw error;
+  }
+};
+
+///////////////////////////////////
+
+// **Funkcija za ustvarjanje zahtevka po meri**
+export const createCustomTicket = async (data: Record<string, any>) => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.post(`http://localhost:3000/tickets/`, data, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+};
+
+// **Funkcija za dodeljevanja zahtevka reševalcu zahtevka po meri**
+export const assignTicket = async (data: Record<string, any>) => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.post(`http://localhost:3000/time-worked/`, data, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+};

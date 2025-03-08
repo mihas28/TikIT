@@ -36,6 +36,16 @@ export const getCompany = async (): Promise<any[]> => {
     }
   };
 
+  export const getAllCompaniesEssential = async (): Promise<any[]> => {
+    try {
+      const res = await pool.query('select company_id AS id, company_name AS name from company');
+      return res.rows;
+    } catch (error) {
+      console.error('Napaka pri dostopu do PostgreSQL:', error);
+      throw error; // Posredujemo napako do `index.ts`
+    }
+  };
+
   // **Funkcija za pridobitev podatkov iz tabele "ticket"**
 export const getTicketData = async (): Promise<any[]> => {
     try {
@@ -208,6 +218,17 @@ export const getAllContracts = async () => {
     }
 };
 
+// **Funkcija za pridobitev vseh pogodb**
+export const getAllContractsEssential = async () => {
+    try {
+        const result = await pool.query('select contract_id AS id, short_description AS name, state AS status, description, company_id AS companyId from contract;');
+        return result.rows;
+    } catch (error) {
+        console.error('Napaka pri pridobivanju pogodb:', error);
+        throw error;
+    }
+};
+
 // **Funkcija za pridobitev pogodbe na podlagi contract_id**
 export const getContractById = async (contract_id: number) => {
     try {
@@ -301,6 +322,16 @@ export const getAllUsers = async () => {
         throw error;
     }
 };
+
+export const getAllUsersEssential = async (): Promise<any[]> => {
+    try {
+      const res = await pool.query('SELECT user_id AS id, first_name || \' \' || last_name AS name, email, company_id AS companyId, group_id AS groupId FROM USERS;');
+      return res.rows;
+    } catch (error) {
+      console.error('Napaka pri dostopu do PostgreSQL:', error);
+      throw error; // Posredujemo napako do `index.ts`
+    }
+  };
 
 // **Funkcija za pridobitev enega uporabnika na podlagi user_id (brez gesla)**
 export const getUserById = async (user_id: number) => {
@@ -424,6 +455,17 @@ export const getAllGroups = async () => {
     }
 };
 
+// **Funkcija za pridobitev vseh skupin**
+export const getAllGroupsEssential = async () => {
+    try {
+        const result = await pool.query('select group_id AS id, group_name AS name from assigment_group;');
+        return result.rows;
+    } catch (error) {
+        console.error('Napaka pri pridobivanju skupin:', error);
+        throw error;
+    }
+};
+
 // **Funkcija za pridobitev skupine na podlagi group_id**
 export const getGroupById = async (group_id: number) => {
     try {
@@ -504,21 +546,18 @@ export const createTicket = async (
     urgency: string,
     state: string,
     type: string,
-    accepted_at: string | null,
-    closed_at: string | null,
-    close_notes: string | null,
-    close_code: string | null,
     caller_id: number,
     parent_ticket_id: number | null,
-    group_id: number
+    group_id: number,
+    contract_id: number
 ) => {
     try {
         const result = await pool.query(
             `INSERT INTO ticket 
-            (title, description, impact, urgency, state, type, created_at, updated_at, accepted_at, closed_at, close_notes, close_code, caller_id, parent_ticket_id, group_id) 
-            VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), $7, $8, $9, $10, $11, $12, $13) 
+            (title, description, impact, urgency, state, type, created_at, updated_at, accepted_at, caller_id, parent_ticket_id, group_id, contract_id) 
+            VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW(), $7, $8, $9, $10) 
             RETURNING ticket_id`,
-            [title, description, impact, urgency, state, type, accepted_at, closed_at, close_notes, close_code, caller_id, parent_ticket_id, group_id]
+            [title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id]
         );
 
         return { ticket_id: result.rows[0].ticket_id };
@@ -592,8 +631,8 @@ export const getTimeWorkedByUserAndTicket = async (user_id: number, ticket_id: n
 export const createTimeWorked = async (
     user_id: number,
     ticket_id: number,
-    time_worked: number,
-    description: string
+    time_worked: number | null,
+    description: string | null
 ) => {
     try {
         const result = await pool.query(
