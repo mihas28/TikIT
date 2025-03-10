@@ -377,3 +377,19 @@ export const assignTicket = async (data: Record<string, any>) => {
     throw error;
   }
 };
+
+// **Funkcija za pridobivanje ticketov**
+export const loadTickets = async () => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.get('http://localhost:3000/tickets', {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Napaka pri pridobivanju podatkov iz /tickets:', error);
+    throw error;
+  }
+};

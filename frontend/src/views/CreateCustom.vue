@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { se } from 'date-fns/locale';
+import { useRouter } from 'vue-router';
+const router = useRouter();
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue';
 import { fetchUsersCreate, fetchCompanyDataCreate, fetchContractsCreate, fetchGroupsCreate, createCustomTicket, assignTicket } from '@/api/api'; 
 
@@ -216,14 +218,15 @@ const saveData = async () => {
   ticket.value.state = 'open';
 
   try {
-    const createdUser = await createCustomTicket(ticket.value);
-    await assignTicket({user_id: selectedEngineer.value.id, ticket_id: createdUser.ticket_id})
+    const createdTicket = await createCustomTicket(ticket.value);
+    await assignTicket({user_id: selectedEngineer.value.id, ticket_id: createdTicket.ticket_id, primary: true})
     
     additionalResolvers.value.forEach(async user => {
-      await assignTicket({user_id: user.id, ticket_id: createdUser.ticket_id})
-  });
+      await assignTicket({user_id: user.id, ticket_id: createdTicket.ticket_id, primary: false})
+    });
 
     errorMessage.value = "Podatki uspešno shranjeni!";
+    router.push({ name: 'TicketDetails', params: { id: createdTicket.ticket_id } });
   } catch (err) {
     console.error('Napaka pri ustvarjanju zahtevka:', err);
   } 

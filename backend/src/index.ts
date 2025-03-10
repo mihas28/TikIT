@@ -724,13 +724,13 @@ app.get('/time-worked/:user_id/:ticket_id', authenticateJWT, authorizeRoles('adm
 // @ts-ignore
 app.post('/time-worked', authenticateJWT, authorizeRoles('admin', 'operator'), async (req: Request, res: Response) => {
   try {
-      const { user_id, ticket_id } = req.body;
+      const { user_id, ticket_id, primary } = req.body;
 
-      if (!user_id || !ticket_id ) {
+      if (!user_id || !ticket_id) {
           return res.status(400).json({ error: 'Manjkajoči podatki' });
       }
 
-      const newTimeWorked = await createTimeWorked(user_id, ticket_id, 0, '');
+      const newTimeWorked = await createTimeWorked(user_id, ticket_id, 0, '', primary);
       res.status(201).json(newTimeWorked);
   } catch (error) {
       console.error('Napaka pri dodajanju vnosa delovnega časa:', error);
