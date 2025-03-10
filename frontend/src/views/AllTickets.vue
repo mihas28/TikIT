@@ -44,12 +44,12 @@ const priorityMap: { [key: string]: { text: string; color: string } } = {
 };
 
 const stateMap: { [key: string]: { text: string; icon: string } } = {
-  "new": { text: "Novo", icon: "⚪" },
-  "open": { text: "Odprto", icon: "🔄" },
-  "awaiting info": { text: "Čaka na informacije", icon: "⏳" },
-  "resolved": { text: "Rešeno", icon: "✅" },
-  "closed": { text: "Zaključeno", icon: "✔️" },
-  "cancelled": { text: "Preklicano", icon: "❌" }
+  "new": { text: "Novo", icon: "bi bi-circle text-secondary" }, // Siva kroglica
+  "open": { text: "Odprto", icon: "bi bi-arrow-repeat text-primary" }, // Modra ponovitev
+  "awaiting info": { text: "Čaka na informacije", icon: "bi bi-hourglass-split text-warning" }, // Rumena ura
+  "resolved": { text: "Rešeno", icon: "bi bi-check-circle text-success" }, // Zelena kljukica
+  "closed": { text: "Zaključeno", icon: "bi bi-check-circle-fill text-secondary" }, // Siva polna kljukica
+  "cancelled": { text: "Preklicano", icon: "bi bi-x-circle text-danger" } // Rdeč križec
 };
 
 const filteredTickets = computed(() => {
@@ -181,7 +181,8 @@ const shortenText = (text: string, maxLength: number = 70) =>
             </td>
             <td>
               <span>
-                {{ stateMap[ticket.state]?.icon || '' }} {{ stateMap[ticket.state]?.text || ticket.state }}
+                <i :class="stateMap[ticket.state]?.icon || 'bi bi-question-circle text-secondary'"></i>
+                {{ stateMap[ticket.state]?.text || ticket.state }}
               </span>
             </td>
             <td>{{ shortenText(ticket.assignment_group) }}</td>
