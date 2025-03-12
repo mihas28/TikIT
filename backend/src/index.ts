@@ -9,7 +9,7 @@ interface AuthenticatedRequest extends Request {
     user?: { userId: number };
 }
 import dotenv from 'dotenv';
-import { getPostgresData, getCompany, verifyUser, registerUser, getAllCompanies, 
+import { getCompany, verifyUser, registerUser, getAllCompanies, 
   getCompanyById, createCompany, updateCompany, getAllContracts, getContractById, createContract, updateContract, getAllUsers, 
   getUserById, updateUser, updatePasswordWithOld, updatePasswordWithoutOld, getAllGroups, getGroupById, createGroup, updateGroup, 
   getAllTickets, getTicketById, createTicket, updateTicket, getTimeWorkedByUserAndTicket, createTimeWorked, updateTimeWorked,
@@ -35,6 +35,17 @@ app.use(cors({
 // Uporaba Helmet za zaščito HTTP headerjev
 app.use(helmet());
 
+const formatDate = (date: Date): string => {
+    return date.toLocaleString("sl-SI", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+    }).replace(",", "");
+};
+
 // Povežemo se na baze
 const initializeDatabases = async () => {
   await connectMongo();
@@ -50,7 +61,7 @@ app.post('/refresh', async (req: Request, res: Response) => {
     refreshToken(req, res);
 });
 
-// **API endpoint za pridobitev podatkov iz PostgreSQL** ----------- odstani
+/*// **API endpoint za pridobitev podatkov iz PostgreSQL** ----------- odstani
 app.get('/postgress', async (req, res) => {
   try {
     const postgresData = await getPostgresData();
@@ -59,15 +70,20 @@ app.get('/postgress', async (req, res) => {
     console.error('Napaka pri pridobivanju podatkov iz PostgreSQL:', error);
     res.status(500).json({ error: 'Napaka pri dostopu do PostgreSQL' });
   }
-});
+});*/
 
-// **API endpoint za pridobitev chat podatkov glede na `ticket_id`**
-app.get('/chats/ticket/:ticket_id', authenticateJWT, async (req: Request, res: Response) => {
+// **API endpoint za pridobitev vseh chat podatkov glede na `ticket_id`**
+app.get('/chat/privat/:ticket_id', authenticateJWT, authorizeRoles('admin', 'operator'), async (req: Request, res: Response): Promise<void> => {
     try {
         const ticketIdParam = req.params.ticket_id;
-
         const ticketId = parseInt(ticketIdParam, 10);
-        const chatData = await getChatsByTicketId(ticketId);
+
+        if (isNaN(ticketId)) {
+            res.status(400).json({ error: 'Neveljaven `ticket_id`' });
+            return;
+        }
+
+        const chatData = await getChatsByTicketId(ticketId, true);
         res.status(200).json(chatData);
     } catch (error) {
         console.error(`Napaka pri pridobivanju podatkov za ticket_id=${req.params.ticket_id}:`, error);
@@ -75,16 +91,35 @@ app.get('/chats/ticket/:ticket_id', authenticateJWT, async (req: Request, res: R
     }
 });
 
-// **API endpoint za ustvarjanje novega chat sporočila**
-app.post('/chat', authenticateJWT, async (req: Request, res: Response) => {
+// **API endpoint za pridobitev javnih chat podatkov glede na `ticket_id`**
+app.get('/chat/public/:ticket_id', authenticateJWT, authorizeRoles('admin', 'operator', 'user'), async (req: Request, res: Response): Promise<void> => {
     try {
-        const { ticket_id, message, private: isPrivate } = req.body as { 
+        const ticketIdParam = req.params.ticket_id;
+        const ticketId = parseInt(ticketIdParam, 10);
+
+        if (isNaN(ticketId)) {
+            res.status(400).json({ error: 'Neveljaven `ticket_id`' });
+            return;
+        }
+
+        const chatData = await getChatsByTicketId(ticketId, false);
+        res.status(200).json(chatData);
+    } catch (error) {
+        console.error(`Napaka pri pridobivanju podatkov za ticket_id=${req.params.ticket_id}:`, error);
+        res.status(500).json({ error: `Napaka pri dostopu do podatkov za ticket_id=${req.params.ticket_id}` });
+    }
+});
+
+// **API endpoint za ustvarjanje novega privat chat sporočila**
+app.post('/chat/privat', authenticateJWT, authorizeRoles('admin', 'operator'), async (req: Request, res: Response) => {
+    try {
+        const { ticket_id, message } = req.body as { 
           ticket_id: number; 
           message: { type: string; content: string | Buffer };
           private: boolean;
         };
 
-        if (!ticket_id || !message || !message.type || !message.content || isPrivate === undefined) {
+        if (!ticket_id || !message || !message.type || !message.content) {
             res.status(400).json({ error: 'Manjkajoči podatki: ticket_id, message.type, message.content, private' });
             return;
         }
@@ -94,7 +129,34 @@ app.post('/chat', authenticateJWT, async (req: Request, res: Response) => {
             return;
         }
         
-        const newChat = await createChat(ticket_id, message, isPrivate);
+        const newChat = await createChat(ticket_id, message, true);
+        res.status(201).json(newChat);
+    } catch (error) {
+        console.error('Napaka pri ustvarjanju chat sporočila:', error);
+        res.status(500).json({ error: 'Napaka pri ustvarjanju chat sporočila' });
+    }
+});
+
+// **API endpoint za ustvarjanje novega javnega chat sporočila**
+app.post('/chat/public', authenticateJWT, authorizeRoles('admin', 'operator', 'user'), async (req: Request, res: Response) => {
+    try {
+        const { ticket_id, message } = req.body as { 
+          ticket_id: number; 
+          message: { type: string; content: string | Buffer };
+          private: boolean;
+        };
+
+        if (!ticket_id || !message || !message.type || !message.content) {
+            res.status(400).json({ error: 'Manjkajoči podatki: ticket_id, message.type, message.content, private' });
+            return;
+        }
+
+        if (!['text', 'image', 'document'].includes(message.type)) {
+            res.status(400).json({ error: 'Neveljaven tip sporočila' });
+            return;
+        }
+        
+        const newChat = await createChat(ticket_id, message, false);
         res.status(201).json(newChat);
     } catch (error) {
         console.error('Napaka pri ustvarjanju chat sporočila:', error);
@@ -668,6 +730,7 @@ app.post('/tickets', authenticateJWT, async (req: Request, res: Response) => {
       }
 
       const newTicket = await createTicket(title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id);
+      createChat(newTicket.ticket_id, { type: "text", content: "Ticket z številko " + newTicket.ticket_id + " uspešno ustvarjen dne " + formatDate(new Date())}, false);
       res.status(201).json(newTicket);
   } catch (error) {
       console.error('Napaka pri dodajanju zahtevka:', error);

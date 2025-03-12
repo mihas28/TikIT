@@ -19,6 +19,7 @@ interface IMessageContent {
 interface IChat extends Document {
   ticket_id: number;
   message: IMessageContent;
+  private: boolean;
   created_at: Date;
 }
 
@@ -55,7 +56,6 @@ const ChatSchema: Schema = new Schema({
   }
 });
 
-
 // **Ustvari model za "chat" ali poveži na obstoječega**
 const ChatModel: Model<IChat> = mongoose.models.chat || mongoose.model<IChat>('chat', ChatSchema, 'chat');
 
@@ -70,18 +70,30 @@ const connectMongo = async (): Promise<void> => {
 };
 
 // **Funkcija za pridobitev chat podatkov glede na določen `ticket_id`**
-export const getChatsByTicketId = async (ticketId: number): Promise<IChat[]> => {
-    try {
-      const chats = await ChatModel.find({ ticket_id: ticketId });
+export const getChatsByTicketId = async (ticketId: number, privateMessage: boolean): Promise<IChat[]> => {
+  try {
+      const chats = await ChatModel.find({ ticket_id: ticketId, private: privateMessage })
+          .sort({ created_at: -1 }) // Sortiranje, najnovejši najprej
+          .lean(); // Vrne običajne objekte namesto Mongoose dokumentov
+
       if (chats.length === 0) {
-        throw new Error(`Za ticket_id=${ticketId} ni najdenih chat sporočil!`);
+          throw new Error(`Za ticket_id=${ticketId} ni najdenih chat sporočil!`);
       }
-      return chats;
-    } catch (error) {
+
+      return chats.map(chat => ({
+          ticket_id: chat.ticket_id,
+          message: {
+              type: chat.message.type,
+              content: chat.message.type === 'document' ? chat.message.content.toString('base64') : chat.message.content
+          },
+          private: chat.private,
+          created_at: chat.created_at
+      })) as unknown as IChat[];
+  } catch (error) {
       console.error(`Napaka pri pridobivanju podatkov za ticket_id=${ticketId}:`, error);
       throw error;
-    }
-  };
+  }
+};
 
 // **Funkcija za ustvarjanje novega chat sporočila v MongoDB**
 export const createChat = async (ticket_id: number, message: { type: string, content: string | Buffer }, isPrivate: boolean) => {

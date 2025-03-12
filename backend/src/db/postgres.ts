@@ -15,7 +15,7 @@ const pool = new Pool({
   database: process.env.POSTGRES_DB,
 });
 
-// **Funkcija za pridobitev podatkov iz tabele "ticket" in vračanje JSON podatkov**
+/*// **Funkcija za pridobitev podatkov iz tabele "ticket" in vračanje JSON podatkov**
 export const getPostgresData = async (): Promise<any[]> => {
   try {
     const res = await pool.query('SELECT * FROM ticket;');
@@ -24,7 +24,7 @@ export const getPostgresData = async (): Promise<any[]> => {
     console.error('Napaka pri dostopu do PostgreSQL:', error);
     throw error; // Posredujemo napako do `index.ts`
   }
-};
+};*/
 
 export const getCompany = async (): Promise<any[]> => {
     try {
