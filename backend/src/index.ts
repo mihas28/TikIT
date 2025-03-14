@@ -13,7 +13,8 @@ import { getCompany, verifyUser, registerUser, getAllCompanies,
   getCompanyById, createCompany, updateCompany, getAllContracts, getContractById, createContract, updateContract, getAllUsers, 
   getUserById, updateUser, updatePasswordWithOld, updatePasswordWithoutOld, getAllGroups, getGroupById, createGroup, updateGroup, 
   getAllTickets, getTicketById, createTicket, updateTicket, getTimeWorkedByUserAndTicket, createTimeWorked, updateTimeWorked,
-  getAllCompaniesEssential, getAllContractsEssential, getAllUsersEssential, getAllGroupsEssential } from './db/postgres';
+  getAllCompaniesEssential, getAllContractsEssential, getAllUsersEssential, getAllGroupsEssential, 
+  getTimeWorkedByTicket} from './db/postgres';
 import connectMongo, { getChatsByTicketId, createChat } from './db/mongo';
 import { authenticateJWT, generateAccessToken, generateRefreshToken, refreshToken, authorizeRoles } from './middleware/auth';
 
@@ -712,7 +713,14 @@ app.get('/tickets/:ticket_id', authenticateJWT, async (req: Request, res: Respon
           return res.status(404).json({ error: 'Zahtevek ni najden' });
       }
 
-      res.status(200).json(ticket);
+      const primary = await getTimeWorkedByTicket(ticket_id, true);
+      if (!primary) {
+          return res.status(404).json({ error: 'Reševalec ni najden' });
+      }
+
+      const other = await getTimeWorkedByTicket(ticket_id, false);
+
+      res.status(200).json({ticket, primary, other});
   } catch (error) {
       console.error(`Napaka pri pridobivanju zahtevka ID=${req.params.ticket_id}:`, error);
       res.status(500).json({ error: 'Napaka pri dostopu do zahtevka' });
@@ -747,13 +755,13 @@ app.put('/tickets/:ticket_id', authenticateJWT, async (req: Request, res: Respon
           return res.status(400).json({ error: 'Neveljaven ticket_id' });
       }
 
-      const { title, description, impact, urgency, state, type, accepted_at, closed_at, close_notes, close_code, caller_id, parent_ticket_id, group_id } = req.body;
+      const { title, description, impact, urgency, state, type, accepted_at, closed_at, close_notes, close_code, caller_id, parent_ticket_id, group_id, contract_id, accept_sla_breach, sla_breach } = req.body;
 
-      if (!title || !description || !impact || !urgency || !state || !type || !caller_id || !group_id) {
+      if (!title || !description || !impact || !urgency || !state || !type || !caller_id || !group_id || !contract_id) {
           return res.status(400).json({ error: 'Manjkajoči podatki' });
       }
 
-      const updatedTicket = await updateTicket(ticket_id, title, description, impact, urgency, state, type, accepted_at, closed_at, close_notes, close_code, caller_id, parent_ticket_id, group_id);
+      const updatedTicket = await updateTicket(ticket_id, title, description, impact, urgency, state, type, accepted_at, closed_at, close_notes, close_code, caller_id, parent_ticket_id, group_id, contract_id, accept_sla_breach, sla_breach);
       if (!updatedTicket) {
           return res.status(404).json({ error: 'Zahtevek ni najden' });
       }

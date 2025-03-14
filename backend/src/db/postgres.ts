@@ -530,7 +530,7 @@ export const getAllTickets = async () => {
 // **Funkcija za pridobitev zahtevka na podlagi ticket_id**
 export const getTicketById = async (ticket_id: number) => {
     try {
-        const result = await pool.query('SELECT * FROM ticket WHERE ticket_id = $1', [ticket_id]);
+        const result = await pool.query('SELECT t.*, CONCAT(u.first_name, \' \', u.last_name) AS caller, CONCAT(c.short_description, \' | \', c.state) AS contract_name, g.group_name AS assignment_group, comp.company_id, comp.company_name FROM ticket t, assigment_group g, contract c, users u, company comp WHERE t.caller_id = u.user_id AND u.company_id = comp.company_id AND t.group_id = g.group_id AND t.contract_id = c.contract_id AND t.ticket_id = $1;', [ticket_id]);
         return result.rows[0] || null;
     } catch (error) {
         console.error(`Napaka pri pridobivanju zahtevka z ID=${ticket_id}:`, error);
@@ -582,7 +582,10 @@ export const updateTicket = async (
     close_code: string | null,
     caller_id: number,
     parent_ticket_id: number | null,
-    group_id: number
+    group_id: number,
+    contract_id: number, 
+    accept_sla_breach: string | null, 
+    sla_breach: string | null
 ) => {
     try {
         const result = await pool.query(
@@ -600,15 +603,32 @@ export const updateTicket = async (
             caller_id = $11, 
             parent_ticket_id = $12, 
             group_id = $13,
+            contract_id = $15,
+            accept_sla_breach = $16,
+            sla_breach = $17,
             updated_at = NOW()
             WHERE ticket_id = $14 
             RETURNING *`,
-            [title, description, impact, urgency, state, type, accepted_at, closed_at, close_notes, close_code, caller_id, parent_ticket_id, group_id, ticket_id]
+            [title, description, impact, urgency, state, type, accepted_at, closed_at, close_notes, close_code, caller_id, parent_ticket_id, group_id, ticket_id, contract_id, accept_sla_breach, sla_breach]
         );
 
         return result.rows[0] || null;
     } catch (error) {
         console.error(`Napaka pri posodabljanju zahtevka z ID=${ticket_id}:`, error);
+        throw error;
+    }
+};
+
+// **Funkcija za pridobitev delovnega časa na podlagi ticket_id**
+export const getTimeWorkedByTicket = async (ticket_id: number, primary_resolver: boolean) => {
+    try {
+        const result = await pool.query(
+            'SELECT t.*, CONCAT(u.first_name, \' \', u.last_name) AS resolver FROM time_worked t, users u WHERE ticket_id = $1 AND primary_resolver = $2 AND t.user_id = u.user_id', 
+            [ticket_id, primary_resolver]
+        );
+        return result.rows || [];
+    } catch (error) {
+        console.error(`Napaka pri pridobivanju delovnega časa za ticket_id=${ticket_id}:`, error);
         throw error;
     }
 };

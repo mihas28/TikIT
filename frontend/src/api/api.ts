@@ -393,3 +393,69 @@ export const loadTickets = async () => {
     throw error;
   }
 };
+
+// **Funkcija za pridobivanje ticketov**
+export const fetchTicketDetails = async (ticket_id: string) => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.get(`http://localhost:3000/tickets/${ticket_id}`, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Napaka pri pridobivanju podatkov iz /tickets:', error);
+    throw error;
+  }
+};
+
+// **Funkcija za ustvarjanje zahtevka po meri**
+export const updateTicket = async (ticket_id: string, data: Record<string, any>) => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.put(`http://localhost:3000/tickets/${ticket_id}`, data, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+};
+
+// **Funkcija za dodajanje novega chat sporočila**
+export const addComment = async (data: Record<string, any>) => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.post(`http://localhost:3000/chat/privat`, data, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+};
+
+// **Funkcija za pridobivanje vsek komentarjev ticketa**
+export const fetchComments = async (ticket_id: number) => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.get(`http://localhost:3000/chat/privat/${ticket_id}`, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Napaka pri pridobivanju podatkov iz /tickets:', error);
+    throw error;
+  }
+};

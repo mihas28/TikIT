@@ -76,9 +76,9 @@ export const getChatsByTicketId = async (ticketId: number, privateMessage: boole
           .sort({ created_at: -1 }) // Sortiranje, najnovejši najprej
           .lean(); // Vrne običajne objekte namesto Mongoose dokumentov
 
-      if (chats.length === 0) {
+      /*if (chats.length === 0) {
           throw new Error(`Za ticket_id=${ticketId} ni najdenih chat sporočil!`);
-      }
+      }*/
 
       return chats.map(chat => ({
           ticket_id: chat.ticket_id,
