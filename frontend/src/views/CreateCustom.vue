@@ -3,21 +3,20 @@ import { se } from 'date-fns/locale';
 import { useRouter } from 'vue-router';
 const router = useRouter();
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue';
-import { fetchUsersCreate, fetchCompanyDataCreate, fetchContractsCreate, fetchGroupsCreate, createCustomTicket, assignTicket } from '@/api/api'; 
+import { fetchUsersCreate, fetchCompanyDataCreate, fetchContractsCreate, fetchGroupsCreate, fetchTicketDataCreate, createCustomTicket, assignTicket } from '@/api/api'; 
 
 const companies = ref<{id: number, name: string}[]>([]);
-
 const users = ref<{id: number, name: string, email: string, companyid: number, groupid: number}[]>([]);
-
 const contracts = ref<{id: number, name: string, status: string, description: string, companyid: number}[]>([]);
-
 const groups = ref<{id: number, name: string}[]>([]);
+const tickets = ref<{id: number, name: string}[]>([]);
 
 // **Izbrane vrednosti**
 const selectedCompany = ref<{ id: number; name: string } | null>(null);
 const selectedCaller = ref<{ id: number; name: string } | null>(null);
 const selectedContract = ref<{ id: number; name: string } | null>(null);
 const selectedEngineer = ref<{ id: number; name: string } | null>(null);
+const selectedTicket = ref<{ id: number; name: string } | null>(null);
 const selectedGroup = ref<{ id: number; name: string } | null>(null);
 const additionalResolvers = ref<{ id: number; name: string }[]>([]);
 const errorMessage = ref('');
@@ -29,6 +28,7 @@ const contractSearch = ref('');
 const engineerSearch = ref('');
 const resolverSearch = ref('');
 const groupSearch = ref('');
+const parentTicketSearch = ref('');
 
 const ticket = ref({
   title: '',
@@ -36,7 +36,7 @@ const ticket = ref({
   impact: '',
   urgency: '',
   type: '',
-  parentTicket: '',
+  parent_ticket_id: 0,
   state: '',
   caller_id: 0,
   group_id: 0,
@@ -61,13 +61,14 @@ const typeOptions = [
 ];
 
 // **Vidnost dropdowna**
-const showDropdowns = ref<{ [key in 'company' | 'caller' | 'contract' | 'engineer' | 'resolver' | 'additional' | 'group']: boolean }>({
+const showDropdowns = ref<{ [key in 'company' | 'caller' | 'contract' | 'engineer' | 'resolver' | 'additional' | 'group' | 'ticket']: boolean }>({
   company: false,
   caller: false,
   contract: false,
   engineer: false,
   resolver: false,
   additional: false,
+  ticket: false,
   group: false
 });
 
@@ -98,6 +99,11 @@ const filteredGroups = computed(() =>
  )
 );
 
+const filteredTickets = computed(() =>
+  tickets.value.filter(t =>
+    t.name.toLowerCase().includes(parentTicketSearch.value.toLowerCase()) || t.id.toString().includes(parentTicketSearch.value.toLowerCase())
+));
+
 const filteredEngineers = computed(() =>
   users.value.filter(u =>
     u.name.toLowerCase().includes(engineerSearch.value.toLowerCase()) &&
@@ -123,6 +129,7 @@ const resetAllFields = () => {
   selectedEngineer.value = null;
   selectedGroup.value = null;
   selectedCompany.value = null;
+  selectedTicket.value = null;
   additionalResolvers.value = [];
   callerSearch.value = '';
   contractSearch.value = '';
@@ -152,6 +159,14 @@ const selectCaller = (user: any) => {
   selectedCompany.value = companies.value.find(c => c.id === user.companyid) || null;
   companySearch.value = selectedCompany.value ? selectedCompany.value.name : '';
   showDropdowns.value.caller = false;
+};
+
+// **Nastavi nadrejeni zahtevek**
+const selectTicket = (tic: any) => {
+  //selectedTicket.value = tic;
+  ticket.value.parent_ticket_id = tic.id;
+  parentTicketSearch.value = "[" + tic.id + "] " + tic.name;
+  showDropdowns.value.ticket = false;
 };
 
 // **Nastavi skupino**
@@ -200,7 +215,7 @@ const removeResolver = (user: any) => {
 
 // **Zunanja klik funkcija za zapiranje dropdownov**
 const closeDropdowns = (event: MouseEvent) => {
-  if (!(event.target as HTMLElement).closest(".content-wrapper")) {
+  if (!(event.target as HTMLElement).closest("input")) {
     Object.keys(showDropdowns.value).forEach(key => (showDropdowns.value[key as keyof typeof showDropdowns.value] = false));
   }
 };
@@ -268,14 +283,24 @@ const loadGroups = async () => {
   }
 };
 
+// **Funkcija za nalaganje zahtevkov**
+const loadTickets = async () => {
+  try {
+    tickets.value = await fetchTicketDataCreate();
+  } catch (error) {
+    console.error('Napaka pri nalaganju skupin:', error);
+  }
+};
+
 onMounted(() => {
   loadUsers();
   loadCompanies();
   loadContracts();
   loadGroups();
+  loadTickets();
 
   document.addEventListener("click", closeDropdowns);
-  document.removeEventListener("click", closeDropdowns)
+  //document.removeEventListener("click", closeDropdowns)
 });
 
 
@@ -397,7 +422,14 @@ onMounted(() => {
         <!-- Parent ticket -->
         <div class="form-group">
           <label for="parentTicket">Nadrejeni zahtevek</label>
-          <input type="text" id="parentTicket" v-model="ticket.parentTicket" />
+          <div class="dropdown-container">         
+            <input type="text" id="parentTicket" v-model="parentTicketSearch" @focus="showDropdowns.ticket = true"  placeholder="Dodaj starševski zahtevek"/>
+              <ul v-if="showDropdowns.ticket">
+                <li v-for="ticket in filteredTickets" :key="ticket.id" @click="selectTicket(ticket)">
+                  {{ ticket.id }} | {{ ticket.name }}
+                </li>
+              </ul>
+          </div>
         </div>
         <div class="form-group">
           <label>Dodatni reševalci</label>

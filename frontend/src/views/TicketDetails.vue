@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from 'vue';
+import { ref, onMounted, watch, computed, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
-import { fetchTicketDetails, updateTicket, addComment, fetchComments, fetchUsersCreate, fetchCompanyDataCreate, fetchContractsCreate, fetchGroupsCreate } from '@/api/api';
+import { fetchTicketDetails, updateTicket, addComment, fetchComments, fetchUsersCreate, fetchCompanyDataCreate, fetchContractsCreate, fetchGroupsCreate, assignTicketUpdate, fetchTicketDataCreate, assignTicket, assignTicketUpdateAdditional, getAllAssignees } from '@/api/api';
 import { io } from 'socket.io-client';
 import WorkLogModal from '../components/ticket_components/WorkLogModal.vue';
 
@@ -15,6 +15,7 @@ const formatDate = (dateString: string): string => {
 };
 
 let getData: boolean = true;
+let oldUserId: number = 0;
 
 const comments = ref<any[]>([]);
 const newComment = ref('');
@@ -27,6 +28,7 @@ const companies = ref<{id: number, name: string}[]>([]);
 const users = ref<{id: number, name: string, email: string, companyid: number, groupid: number}[]>([]);
 const contracts = ref<{id: number, name: string, status: string, description: string, companyid: number}[]>([]);
 const groups = ref<{id: number, name: string}[]>([]);
+const tickets = ref<{id: number, name: string}[]>([]);
 
 // **Izbrane vrednosti**
 const selectedCompany = ref<{ id: number; name: string } | null>(null);
@@ -43,6 +45,7 @@ const callerSearch = ref('');
 const contractSearch = ref('');
 const engineerSearch = ref('');
 const resolverSearch = ref('');
+const parentTicketSearch = ref('');
 const groupSearch = ref('');
 
 const ticket = ref({ticket:
@@ -56,13 +59,14 @@ const ticket = ref({ticket:
     close_notes: '',
     company_id: 0,
     company_name: '',
-    contract_id: '',
+    contract_id: 0,
     contract_name: '',
     created_at: '',
     description: '',
     group_id: 0,
     impact: 0,
     parent_ticket_id: 0,
+    parent_ticket_title: '',
     priority: '',
     resolved_at: '',
     sla_breach: '',
@@ -84,6 +88,29 @@ const ticket = ref({ticket:
     user_id: 0,
   }],
   other: [{
+    created_at: '',
+    description: '',
+    primary_resolver: '',
+    resolver: '',
+    ticket_id: 0,
+    time_worked: '',
+    updated_at: '',
+    user_id: 0,
+  }]
+});
+
+const resolvers = ref({
+  primary: {
+    created_at: '',
+    description: '',
+    primary_resolver: '',
+    resolver: '',
+    ticket_id: 0,
+    time_worked: '',
+    updated_at: '',
+    user_id: 0,
+  },
+  other: [{ 
     created_at: '',
     description: '',
     primary_resolver: '',
@@ -142,13 +169,14 @@ const getPriority = () => {
 const formattedDate = ref('');
 
 // **Vidnost dropdowna**
-const showDropdowns = ref<{ [key in 'company' | 'caller' | 'contract' | 'engineer' | 'resolver' | 'additional' | 'group']: boolean }>({
+const showDropdowns = ref<{ [key in 'company' | 'caller' | 'contract' | 'engineer' | 'resolver' | 'additional' | 'group' | 'ticket']: boolean }>({
   company: false,
   caller: false,
   contract: false,
   engineer: false,
   resolver: false,
   additional: false,
+  ticket: false,
   group: false
 });
 
@@ -157,14 +185,39 @@ const loadTicket = async () => {
   try {
     isLoading.value = true;
     ticket.value = await fetchTicketDetails(ticketId.value);
+    oldUserId = ticket.value.primary[0].user_id;
     companySearch.value = ticket.value.ticket.company_name;
     callerSearch.value = ticket.value.ticket.caller;
+    selectedCaller.value = { id: ticket.value.ticket.caller_id, name: ticket.value.ticket.caller };
     contractSearch.value = ticket.value.ticket.contract_name;
-    engineerSearch.value = ticket.value.primary[0].resolver;
+    selectedContract.value = { id: ticket.value.ticket.contract_id, name: ticket.value.ticket.contract_name };
+
+    try
+    {
+      parentTicketSearch.value = "["+ ticket.value.ticket.parent_ticket_id.toString() + "] " + ticket.value.ticket.parent_ticket_title;
+    } catch (error) {
+      parentTicketSearch.value = '';
+    };
+
+    
+    if (ticket.value.ticket.state !== "new")
+    {
+      try
+      {
+        engineerSearch.value = ticket.value.primary[0].resolver;
+      } catch (error) {
+        engineerSearch.value = '';
+      }
+    }
+    else
+     getDataFunction();
+
     ticket.value.other.forEach(data => {
       addResolver({ id: data.user_id, name: data.resolver });
     }); 
+
     groupSearch.value = ticket.value.ticket.assignment_group;
+    selectedGroup.value = { id: ticket.value.ticket.group_id, name: ticket.value.ticket.assignment_group };
     formattedDate.value = formatDate(ticket.value.ticket.created_at);
     getPriority();
 
@@ -194,7 +247,91 @@ const loadComments = async () => {
 // **Shranjevanje sprememb ticketov**
 const saveChanges = async () => {
   try {
-    await updateTicket(String(ticketId.value), ticket.value);
+    // Posodobi osnovne podatke o ticketu
+    ticket.value.ticket.caller_id = selectedCaller.value?.id ?? 0;
+    ticket.value.ticket.group_id = selectedGroup.value?.id ?? 0;
+    ticket.value.ticket.contract_id = selectedContract.value?.id ?? 0;
+
+    // Preveri, ali imamo izbranega inženirja
+    if (!selectedEngineer.value) {
+      selectedEngineer.value = {
+        id: ticket.value.primary?.[0]?.user_id ?? 0,
+        name: ticket.value.primary?.[0]?.resolver ?? "",
+      };
+    }
+
+    // Če je ticket v stanju "new", ga premaknemo v "open" in dodelimo uporabnike
+    if (ticket.value.ticket.state === "new") {
+      await assignTicket({
+        user_id: selectedEngineer.value.id,
+        ticket_id: ticket.value.ticket.ticket_id,
+        primary: true,
+      });
+
+      for (const user of additionalResolvers.value) {
+        await assignTicket({
+          user_id: user.id,
+          ticket_id: ticket.value.ticket.ticket_id,
+          primary: false,
+        });
+      }
+
+      ticket.value.ticket.state = "open";
+    } else {
+      // Počakaj na Vue posodobitev
+      await nextTick();
+
+      // Preveri, ali `primary` array obstaja in ni prazen
+      if (!ticket.value.primary || ticket.value.primary.length === 0) {
+        console.error("ticket.value.primary še ni naložen!");
+        return;
+      }
+
+      // Preveri, ali `user_id` obstaja in če je potreben update
+      if (oldUserId !== selectedEngineer.value.id) {
+        await assignTicketUpdate({
+          new_user_id: selectedEngineer.value.id,
+          old_user_id: oldUserId,
+          ticket_id: ticket.value.ticket.ticket_id,
+          primary: true,
+        });
+
+        // Počakaj na osvežitev podatkov po spremembi
+        resolvers.value = await getAllAssignees(ticketId.value);
+        ticket.value.primary[0] = resolvers.value.primary;
+        oldUserId = selectedEngineer.value.id;
+        ticket.value.other = resolvers.value.other;
+      }
+
+      // Preveri dodatne resolverje
+      await nextTick();
+
+      const oldResolvers = ticket.value.other.map((resolver: { user_id: number }) => resolver.user_id);
+      const newResolvers = additionalResolvers.value.map((resolver: { id: number }) => resolver.id);
+
+      const oldSet = new Set(oldResolvers);
+      const newSet = new Set(newResolvers);
+
+      const toRemove = oldResolvers.filter(id => !newSet.has(id));
+      const toAdd = newResolvers.filter(id => !oldSet.has(id));
+
+      if (toRemove.length > 0 || toAdd.length > 0) {
+        await assignTicketUpdateAdditional({
+          toRemove,
+          toAdd,
+          ticket_id: ticket.value.ticket.ticket_id,
+        });
+
+        // Počakaj na nove podatke, preden jih nastaviš
+        resolvers.value = await getAllAssignees(ticketId.value);
+        ticket.value.primary[0] = resolvers.value.primary;
+        ticket.value.other = resolvers.value.other;
+      }
+    }
+
+    // Shrani spremembe v bazo
+    await updateTicket(String(ticketId.value), ticket.value.ticket);
+    
     alert("Spremembe shranjene!");
   } catch (error) {
     console.error("Napaka pri shranjevanju:", error);
@@ -255,6 +392,12 @@ const filteredEngineers = computed(() =>
   )
 );
 
+const filteredTickets = computed(() =>
+  tickets.value.filter(t =>
+    (t.name.toLowerCase().includes(parentTicketSearch.value.toLowerCase()) || t.id.toString().includes(parentTicketSearch.value.toLowerCase())) && 
+    (t.id.toString() !== ticketId.value)
+));
+
 const filteredResolvers = computed(() =>
   users.value.filter(u =>
     u.name.toLowerCase().includes(resolverSearch.value.toLowerCase()) &&
@@ -314,6 +457,13 @@ const selectGroup = (group: any) => {
   showDropdowns.value.group = false;
 };
 
+// **Nastavi nadrejeni zahtevek**
+const selectTicket = (tic: any) => {
+  ticket.value.ticket.parent_ticket_id = tic.id;
+  parentTicketSearch.value = "[" + tic.id + "] " + tic.name;
+  showDropdowns.value.ticket = false;
+};
+
 // **Nastavi pogodbo**
 const selectContract = (contract: any) => {
   selectedContract.value = contract;
@@ -343,7 +493,7 @@ const addResolver = (user: any) => {
 
 // **Zunanja klik funkcija za zapiranje dropdownov**
 const closeDropdowns = (event: MouseEvent) => {
-  if (!(event.target as HTMLElement).closest(".content-wrapper")) {
+  if (!(event.target as HTMLElement).closest("input")) {
     Object.keys(showDropdowns.value).forEach(key => (showDropdowns.value[key as keyof typeof showDropdowns.value] = false));
   }
 };
@@ -356,6 +506,7 @@ const removeResolver = (user: any) => {
     loadCompanies();
     loadContracts();
     loadGroups();
+    loadTickets();
     document.addEventListener("click", closeDropdowns);
     //document.removeEventListener("click", closeDropdowns)
     getData = !getData;
@@ -428,6 +579,15 @@ const loadGroups = async () => {
   }
 };
 
+// **Funkcija za nalaganje zahtevkov**
+const loadTickets = async () => {
+  try {
+    tickets.value = await fetchTicketDataCreate();
+  } catch (error) {
+    console.error('Napaka pri nalaganju skupin:', error);
+  }
+};
+
 onMounted(async () => {
   await loadTicket();
   //await loadComments();
@@ -443,21 +603,13 @@ const getDataFunction = () => {
     loadCompanies();
     loadContracts();
     loadGroups();
+    loadTickets();
     document.addEventListener("click", closeDropdowns);
-    document.removeEventListener("click", closeDropdowns)
+    //document.removeEventListener("click", closeDropdowns)
     getData = !getData;
   }
 };
 
-/*onMounted(() => {
-  loadUsers();
-  loadCompanies();
-  loadContracts();
-  loadGroups();
-
-  document.addEventListener("click", closeDropdowns);
-  document.removeEventListener("click", closeDropdowns)
-});*/
 </script>
 
 <template>
@@ -474,7 +626,7 @@ const getDataFunction = () => {
       {{ ticket.ticket.accept_sla_breach }}
     </div>
 
-    <form @submit.prevent="saveData" class="ticket-form">
+    <form class="ticket-form">
       <div class="form-row">
         <!-- ID -->
         <div class="form-group">
@@ -574,7 +726,14 @@ const getDataFunction = () => {
         <!-- Parent ticket -->
         <div class="form-group">
           <label for="parentTicket">Nadrejeni zahtevek</label>
-          <input type="text" id="parentTicket" v-model="ticket.ticket.parent_ticket_id" />
+          <div class="dropdown-container">         
+            <input type="text" id="parentTicket" v-model="parentTicketSearch" @focus="showDropdowns.ticket = true" @input="getDataFunction"  placeholder="Dodaj starševski zahtevek"/>
+              <ul v-if="showDropdowns.ticket">
+                <li v-for="ticket in filteredTickets" :key="ticket.id" @click="selectTicket(ticket)">
+                  {{ ticket.id }} | {{ ticket.name }}
+                </li>
+              </ul>
+          </div>
         </div>
         <!-- Inženir -->
         <div class="form-group">
@@ -631,8 +790,6 @@ const getDataFunction = () => {
         <label for="description">Opis</label>
         <textarea id="description" v-model="ticket.ticket.description" required></textarea>
       </div>
-
-      <button type="submit" class="submit-btn">Ustvari zahtevek</button>
 
     </form>
 

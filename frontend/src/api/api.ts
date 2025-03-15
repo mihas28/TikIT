@@ -394,6 +394,22 @@ export const loadTickets = async () => {
   }
 };
 
+// **Funkcija za pridobivanje osnovnih podatkov o ticketih**
+export const fetchTicketDataCreate = async () => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.get('http://localhost:3000/tickets/essential', {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Napaka pri pridobivanju podatkov iz /tickets:', error);
+    throw error;
+  }
+};
+
 // **Funkcija za pridobivanje ticketov**
 export const fetchTicketDetails = async (ticket_id: string) => {
   try {
@@ -449,6 +465,56 @@ export const fetchComments = async (ticket_id: number) => {
   try {
     const authStore = useAuthStore();
     const response = await axios.get(`http://localhost:3000/chat/privat/${ticket_id}`, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Napaka pri pridobivanju podatkov iz /tickets:', error);
+    throw error;
+  }
+};
+
+// **Funkcija za posodabljanje primarnega reševalca**
+export const assignTicketUpdate = async (data: Record<string, any>) => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.put(`http://localhost:3000/time-worked/update`, data, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+};
+
+// **Funkcija za posodabljanje pomožnih reševalcev**
+export const assignTicketUpdateAdditional = async (data: Record<string, any>) => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.put(`http://localhost:3000/time-worked-update/additional`, data, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+};
+
+// **Funkcija za pridobivanje vseh reševalcev ticketa**
+export const getAllAssignees = async (ticket_id: string) => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.get(`http://localhost:3000/tickets-time-worked/${ticket_id}`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
       },

@@ -527,10 +527,21 @@ export const getAllTickets = async () => {
     }
 };
 
+// **Funkcija za pridobitev vseh zahtevkov**
+export const getAllTicketsEssential = async () => {
+    try {
+        const result = await pool.query('SELECT ticket_id AS id, title AS name FROM ticket');
+        return result.rows;
+    } catch (error) {
+        console.error('Napaka pri pridobivanju zahtevkov:', error);
+        throw error;
+    }
+};
+
 // **Funkcija za pridobitev zahtevka na podlagi ticket_id**
 export const getTicketById = async (ticket_id: number) => {
     try {
-        const result = await pool.query('SELECT t.*, CONCAT(u.first_name, \' \', u.last_name) AS caller, CONCAT(c.short_description, \' | \', c.state) AS contract_name, g.group_name AS assignment_group, comp.company_id, comp.company_name FROM ticket t, assigment_group g, contract c, users u, company comp WHERE t.caller_id = u.user_id AND u.company_id = comp.company_id AND t.group_id = g.group_id AND t.contract_id = c.contract_id AND t.ticket_id = $1;', [ticket_id]);
+        const result = await pool.query('SELECT t.*, CONCAT(u.first_name, \' \', u.last_name) AS caller, CONCAT(c.short_description, \' | \', c.state) AS contract_name, g.group_name AS assignment_group, comp.company_id, comp.company_name, pt.title AS parent_ticket_title FROM ticket t LEFT JOIN ticket pt ON t.parent_ticket_id = pt.ticket_id JOIN assigment_group g ON t.group_id = g.group_id JOIN contract c ON t.contract_id = c.contract_id JOIN users u ON t.caller_id = u.user_id JOIN company comp ON u.company_id = comp.company_id WHERE t.ticket_id = $1;', [ticket_id]);
         return result.rows[0] || null;
     } catch (error) {
         console.error(`Napaka pri pridobivanju zahtevka z ID=${ticket_id}:`, error);
@@ -576,16 +587,10 @@ export const updateTicket = async (
     urgency: string,
     state: string,
     type: string,
-    accepted_at: string | null,
-    closed_at: string | null,
-    close_notes: string | null,
-    close_code: string | null,
     caller_id: number,
     parent_ticket_id: number | null,
     group_id: number,
-    contract_id: number, 
-    accept_sla_breach: string | null, 
-    sla_breach: string | null
+    contract_id: number
 ) => {
     try {
         const result = await pool.query(
@@ -596,20 +601,14 @@ export const updateTicket = async (
             urgency = $4, 
             state = $5, 
             type = $6, 
-            accepted_at = $7, 
-            closed_at = $8, 
-            close_notes = $9, 
-            close_code = $10, 
-            caller_id = $11, 
-            parent_ticket_id = $12, 
-            group_id = $13,
-            contract_id = $15,
-            accept_sla_breach = $16,
-            sla_breach = $17,
+            caller_id = $7, 
+            parent_ticket_id = $8, 
+            group_id = $9,
+            contract_id = $10,
             updated_at = NOW()
-            WHERE ticket_id = $14 
+            WHERE ticket_id = $11 
             RETURNING *`,
-            [title, description, impact, urgency, state, type, accepted_at, closed_at, close_notes, close_code, caller_id, parent_ticket_id, group_id, ticket_id, contract_id, accept_sla_breach, sla_breach]
+            [title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id, ticket_id]
         );
 
         return result.rows[0] || null;
@@ -692,6 +691,59 @@ export const updateTimeWorked = async (
         return result.rows[0] || null;
     } catch (error) {
         console.error(`Napaka pri posodabljanju delovnega časa za user_id=${user_id} in ticket_id=${ticket_id}:`, error);
+        throw error;
+    }
+};
+
+// **Funkcija za posodobitev primarnega reševalca**
+export const updatePrimary = async (
+    old_user_id: number,
+    new_user_id: number,
+    ticket_id: number,
+    primary: boolean
+) => {
+    try {
+        const result = await pool.query(
+            `WITH update_old AS (UPDATE time_worked SET primary_resolver = NULL WHERE ticket_id = $1 AND user_id = $2 RETURNING *), insert_new AS (INSERT INTO time_worked (user_id, ticket_id, time_worked, description, created_at, updated_at, primary_resolver) VALUES ($3, $1, 0, '', NOW(), NOW(), $4) ON CONFLICT (user_id, ticket_id) DO UPDATE SET primary_resolver = $4, updated_at = NOW() RETURNING *) SELECT * FROM update_old UNION ALL SELECT * FROM insert_new;`,
+            [ticket_id, old_user_id, new_user_id, primary]
+        );
+
+        return result.rows[0] || null;
+    } catch (error) {
+        console.error(`Napaka pri posodabljanju delovnega časa za old_user_id=${old_user_id}, new_user_id=${new_user_id} in ticket_id=${ticket_id}:`, error);
+        throw error;
+    }
+};
+
+// **Funkcija za sinhronizacijo pomožnih reševalcev**
+export const syncAdditionalResolvers = async (ticket_id: number, oldResolvers: number[], newResolvers: number[]) => {
+    try {
+        const oldSet = new Set(oldResolvers); // Stari reševalci
+        const newSet = new Set(newResolvers); // Novi reševalci
+
+        // Ugotovimo odstranjene in dodane reševalce
+        const toRemove = oldResolvers.filter(user_id => !newSet.has(user_id));
+        const toAdd = newResolvers.filter(user_id => !oldSet.has(user_id));
+
+        // Izbrišemo odstranjene reševalce
+        if (toRemove.length > 0) {
+            await pool.query(
+                `UPDATE time_worked SET primary_resolver = NULL WHERE ticket_id = $1 AND user_id = ANY($2);`,
+                [ticket_id, toRemove]
+            );
+        }
+
+        // Dodamo nove reševalce
+        if (toAdd.length > 0) {
+            const values = toAdd.map(user_id => `(${user_id}, ${ticket_id}, 0, '', NOW(), NOW(), false)`).join(", ");
+            await pool.query(
+                `INSERT INTO time_worked (user_id, ticket_id, time_worked, description, created_at, updated_at, primary_resolver) VALUES ${values} ON CONFLICT (user_id, ticket_id) DO UPDATE SET primary_resolver = FALSE, updated_at = NOW();`
+            );
+        }
+
+        return { removed: toRemove, added: toAdd };
+    } catch (error) {
+        console.error(`Napaka pri sinhronizaciji pomožnih reševalcev za ticket_id=${ticket_id}:`, error);
         throw error;
     }
 };
