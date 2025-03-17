@@ -21,6 +21,7 @@ interface IChat extends Document {
   message: IMessageContent;
   private: boolean;
   created_at: Date;
+  name: string;
 }
 
 // **Shema za "chat"**
@@ -53,6 +54,12 @@ const ChatSchema: Schema = new Schema({
     required: true,
     default: Date.now,
     description: 'Čas ustvarjanja sporočila'
+  },
+  name: {
+    type: String,
+    required: true,
+    description: 'Ime uporabnika, ki je poslal sporočilo',
+    default: 'Sistem'
   }
 });
 
@@ -70,9 +77,9 @@ const connectMongo = async (): Promise<void> => {
 };
 
 // **Funkcija za pridobitev chat podatkov glede na določen `ticket_id`**
-export const getChatsByTicketId = async (ticketId: number, privateMessage: boolean): Promise<IChat[]> => {
+export const getChatsByTicketId = async (ticketId: number, /*privateMessage: boolean*/): Promise<IChat[]> => {
   try {
-      const chats = await ChatModel.find({ ticket_id: ticketId, private: privateMessage })
+      const chats = await ChatModel.find({ ticket_id: ticketId/*, private: privateMessage*/ })
           .sort({ created_at: -1 }) // Sortiranje, najnovejši najprej
           .lean(); // Vrne običajne objekte namesto Mongoose dokumentov
 
@@ -87,7 +94,8 @@ export const getChatsByTicketId = async (ticketId: number, privateMessage: boole
               content: chat.message.type === 'document' ? chat.message.content.toString('base64') : chat.message.content
           },
           private: chat.private,
-          created_at: chat.created_at
+          created_at: chat.created_at,
+          name: chat.name
       })) as unknown as IChat[];
   } catch (error) {
       console.error(`Napaka pri pridobivanju podatkov za ticket_id=${ticketId}:`, error);
@@ -96,13 +104,14 @@ export const getChatsByTicketId = async (ticketId: number, privateMessage: boole
 };
 
 // **Funkcija za ustvarjanje novega chat sporočila v MongoDB**
-export const createChat = async (ticket_id: number, message: { type: string, content: string | Buffer }, isPrivate: boolean) => {
+export const createChat = async (ticket_id: number, message: { type: string, content: string | Buffer }, isPrivate: boolean, name: string ) => {
   try {
       const newChat = new ChatModel({
           ticket_id,
           message,
           private: isPrivate,
-          created_at: new Date() // Samodejno nastavi trenutno uro ob ustvarjanju
+          created_at: new Date(), // Samodejno nastavi trenutno uro ob ustvarjanju
+          name
       });
 
       return await newChat.save();

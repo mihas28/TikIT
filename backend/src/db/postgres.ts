@@ -748,5 +748,19 @@ export const syncAdditionalResolvers = async (ticket_id: number, oldResolvers: n
     }
 };
 
+// **Funkcija za pridobitev imena in priimka na podlagi user_id**
+export const getNameLastNamebyUserId = async (user_id: number) => {
+    try {
+        const result = await pool.query(
+            'SELECT CONCAT(first_name, \' \', last_name) AS name FROM users WHERE user_id = $1', 
+            [user_id]
+        );
+        return result.rows || [];
+    } catch (error) {
+        console.error(`Napaka pri pridobivanju delovnega časa za user_id=${user_id}:`, error);
+        throw error;
+    }
+};
+
 
 export default pool;

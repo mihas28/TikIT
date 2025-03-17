@@ -44,4 +44,431 @@
   "created_at": {
     "$date": "2025-02-24T10:10:00.000Z"
   }
+},
+{
+  "_id": {
+    "$oid": "67d1cec798fe76561b311489"
+  },
+  "ticket_id": 3,
+  "message": {
+    "type": "document",
+    "content": {
+      "$binary": {
+        "base64": "JVBERi0xLjQKJQ==",
+        "subType": "00"
+      }
+    }
+  },
+  "private": false,
+  "created_at": {
+    "$date": "2025-02-24T10:10:00.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "67d1dd8b0a6e3c6ab2ef91aa"
+  },
+  "ticket_id": 37,
+  "message": {
+    "type": "text",
+    "content": "Ticket s številko 37 uspešno ustvarjen dne 12. 03. 2025 20:16"
+  },
+  "private": false,
+  "created_at": {
+    "$date": "2025-03-12T19:16:27.178Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67d1e22c7007f82a54092d45"
+  },
+  "ticket_id": 37,
+  "message": {
+    "type": "text",
+    "content": "Ticket z številko 38 uspešno ustvarjen dne 12. 03. 2025 20:36"
+  },
+  "private": false,
+  "created_at": {
+    "$date": "2025-03-12T19:36:12.415Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67d570f4e3587ad3d375aa2f"
+  },
+  "ticket_id": 37,
+  "message": {
+    "type": "text",
+    "content": "Ticket z številko 39 uspešno ustvarjen dne 15. 03. 2025 13:22"
+  },
+  "private": false,
+  "created_at": {
+    "$date": "2025-03-15T12:22:12.827Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67d766988eb93c6abb3946c2"
+  },
+  "ticket_id": 37,
+  "message": {
+    "type": "text",
+    "content": "efefef"
+  },
+  "private": true,
+  "created_at": {
+    "$date": "2025-03-17T00:02:32.610Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67d767f1d6543e4eeccab254"
+  },
+  "ticket_id": 37,
+  "message": {
+    "type": "text",
+    "content": "efefe"
+  },
+  "private": true,
+  "created_at": {
+    "$date": "2025-03-17T00:08:17.708Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67d767f3d6543e4eeccab256"
+  },
+  "ticket_id": 37,
+  "message": {
+    "type": "text",
+    "content": "fefe"
+  },
+  "private": false,
+  "created_at": {
+    "$date": "2025-03-17T00:08:19.282Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67d76aa7d6543e4eeccab260"
+  },
+  "ticket_id": 37,
+  "message": {
+    "type": "text",
+    "content": "test"
+  },
+  "private": true,
+  "created_at": {
+    "$date": "2025-03-17T00:19:51.167Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67d76aabd6543e4eeccab262"
+  },
+  "ticket_id": 37,
+  "message": {
+    "type": "text",
+    "content": "test 2"
+  },
+  "private": false,
+  "created_at": {
+    "$date": "2025-03-17T00:19:55.120Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67d77b0c2cbf80953d0bf5e0"
+  },
+  "ticket_id": 37,
+  "message": {
+    "type": "text",
+    "content": "fefefe"
+  },
+  "private": true,
+  "created_at": {
+    "$date": "2025-03-17T01:29:48.404Z"
+  },
+  "name": "test",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67d77c63713306317be53734"
+  },
+  "ticket_id": 37,
+  "message": {
+    "type": "text",
+    "content": "fefe"
+  },
+  "private": true,
+  "created_at": {
+    "$date": "2025-03-17T01:35:31.968Z"
+  },
+  "name": "getNameLastNamebyUserId(userId)",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67d77c7914c72b9e6f4beba6"
+  },
+  "ticket_id": 37,
+  "message": {
+    "type": "text",
+    "content": "efefe"
+  },
+  "private": true,
+  "created_at": {
+    "$date": "2025-03-17T01:35:53.832Z"
+  },
+  "name": "getNameLastNamebyUserId(userId)",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67d77d285a3e28c088cc05ed"
+  },
+  "ticket_id": 37,
+  "message": {
+    "type": "text",
+    "content": "fefef"
+  },
+  "private": true,
+  "created_at": {
+    "$date": "2025-03-17T01:38:48.400Z"
+  },
+  "name": "Miha Škrabolje",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67d77d955a3e28c088cc05f0"
+  },
+  "ticket_id": 37,
+  "message": {
+    "type": "text",
+    "content": "javen"
+  },
+  "private": true,
+  "created_at": {
+    "$date": "2025-03-17T01:40:37.100Z"
+  },
+  "name": "Miha Škrabolje",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67d77d985a3e28c088cc05f2"
+  },
+  "ticket_id": 37,
+  "message": {
+    "type": "text",
+    "content": "zaseben"
+  },
+  "private": false,
+  "created_at": {
+    "$date": "2025-03-17T01:40:40.807Z"
+  },
+  "name": "Miha Škrabolje",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67d77def5a3e28c088cc05f4"
+  },
+  "ticket_id": 40,
+  "message": {
+    "type": "text",
+    "content": "Ticket z številko 40 uspešno ustvarjen dne 17. 03. 2025 02:42"
+  },
+  "private": false,
+  "created_at": {
+    "$date": "2025-03-17T01:42:07.008Z"
+  },
+  "name": "system",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67d77e0e5a3e28c088cc05f8"
+  },
+  "ticket_id": 40,
+  "message": {
+    "type": "text",
+    "content": "test zasebni"
+  },
+  "private": false,
+  "created_at": {
+    "$date": "2025-03-17T01:42:38.157Z"
+  },
+  "name": "Miha Škrabolje",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67d77eda5a3e28c088cc05fb"
+  },
+  "ticket_id": 40,
+  "message": {
+    "type": "text",
+    "content": "efef"
+  },
+  "private": true,
+  "created_at": {
+    "$date": "2025-03-17T01:46:02.559Z"
+  },
+  "name": "Miha Škrabolje",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67d77ee15a3e28c088cc05fe"
+  },
+  "ticket_id": 40,
+  "message": {
+    "type": "text",
+    "content": "fefef"
+  },
+  "private": false,
+  "created_at": {
+    "$date": "2025-03-17T01:46:09.589Z"
+  },
+  "name": "Miha Škrabolje",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67d77ef05a3e28c088cc0601"
+  },
+  "ticket_id": 40,
+  "message": {
+    "type": "text",
+    "content": "test zasebni"
+  },
+  "private": false,
+  "created_at": {
+    "$date": "2025-03-17T01:46:24.136Z"
+  },
+  "name": "Miha Škrabolje",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67d77ef45a3e28c088cc0603"
+  },
+  "ticket_id": 40,
+  "message": {
+    "type": "text",
+    "content": "fef"
+  },
+  "private": false,
+  "created_at": {
+    "$date": "2025-03-17T01:46:28.933Z"
+  },
+  "name": "Miha Škrabolje",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67d77ef65a3e28c088cc0605"
+  },
+  "ticket_id": 40,
+  "message": {
+    "type": "text",
+    "content": "fefe"
+  },
+  "private": true,
+  "created_at": {
+    "$date": "2025-03-17T01:46:30.793Z"
+  },
+  "name": "Miha Škrabolje",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67d77ef85a3e28c088cc0607"
+  },
+  "ticket_id": 40,
+  "message": {
+    "type": "text",
+    "content": "fefe"
+  },
+  "private": true,
+  "created_at": {
+    "$date": "2025-03-17T01:46:32.570Z"
+  },
+  "name": "Miha Škrabolje",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67d77f575a3e28c088cc060a"
+  },
+  "ticket_id": 40,
+  "message": {
+    "type": "text",
+    "content": "to bi moral bit javen private=false"
+  },
+  "private": true,
+  "created_at": {
+    "$date": "2025-03-17T01:48:07.907Z"
+  },
+  "name": "Miha Škrabolje",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67d77f585a3e28c088cc060c"
+  },
+  "ticket_id": 40,
+  "message": {
+    "type": "text",
+    "content": "to bi moral bit zaseben private=true"
+  },
+  "private": false,
+  "created_at": {
+    "$date": "2025-03-17T01:48:08.843Z"
+  },
+  "name": "Miha Škrabolje",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67d780435a3e28c088cc060f"
+  },
+  "ticket_id": 40,
+  "message": {
+    "type": "text",
+    "content": "vr\\n\nvrv\\n\nr\\n\nrvtrf\\n\nfehztjz\\nukzt"
+  },
+  "private": false,
+  "created_at": {
+    "$date": "2025-03-17T01:52:03.159Z"
+  },
+  "name": "Miha Škrabolje",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67d780485a3e28c088cc0611"
+  },
+  "ticket_id": 40,
+  "message": {
+    "type": "text",
+    "content": "zasebni"
+  },
+  "private": true,
+  "created_at": {
+    "$date": "2025-03-17T01:52:08.090Z"
+  },
+  "name": "Miha Škrabolje",
+  "__v": 0
 }]

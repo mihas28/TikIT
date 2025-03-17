@@ -4,6 +4,8 @@ import { useRoute } from 'vue-router';
 import { fetchTicketDetails, updateTicket, addComment, fetchComments, fetchUsersCreate, fetchCompanyDataCreate, fetchContractsCreate, fetchGroupsCreate, assignTicketUpdate, fetchTicketDataCreate, assignTicket, assignTicketUpdateAdditional, getAllAssignees } from '@/api/api';
 import { io } from 'socket.io-client';
 import WorkLogModal from '../components/ticket_components/WorkLogModal.vue';
+import { useAuthStore } from '../stores/authStore';
+import { formatRFC3339 } from 'date-fns';
 
 const route = useRoute();
 const ticketId = ref(Array.isArray(route.params.id) ? route.params.id[0] : route.params.id);
@@ -11,18 +13,28 @@ const ticketId = ref(Array.isArray(route.params.id) ? route.params.id[0] : route
 // **Formatiranje datuma**
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
-  return `${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()} ob ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+  return `${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
 };
 
 let getData: boolean = true;
 let oldUserId: number = 0;
 
 const comments = ref<any[]>([]);
-const newComment = ref('');
-const isPublic = ref(true);
+const ticket_comments = ref<any>({});
+const newPublicComment = ref('');
+const newPrivateComment = ref('');
+const uploadedFile = ref<File | null>(null);
+const authStore = useAuthStore();
+const socket = io(import.meta.env.VITE_SOCKET_URL, {
+  query: { user_id: 123 }, 
+  transports: ["websocket"],
+  auth: {
+    token: authStore.accessToken // Pošlje JWT ob vzpostavitvi povezave
+  }
+});
+
 const isLoading = ref(false);
 const isWorkLogModalOpen = ref(false);
-const socket = io(import.meta.env.VITE_SOCKET_URL);
 
 const companies = ref<{id: number, name: string}[]>([]);
 const users = ref<{id: number, name: string, email: string, companyid: number, groupid: number}[]>([]);
@@ -228,22 +240,6 @@ const loadTicket = async () => {
   }
 };
 
-// **Validacija podatkov (kot CreateCustom.vue)**
-/*watch(ticket, (newVal) => {
-  if (!newVal.title /*|| !newVal.priority || !newVal.state) {
-    loadTicket();
-  }
-});*/
-
-// **Pridobivanje komentarjev**
-const loadComments = async () => {
-  try {
-    comments.value = await fetchComments(Number(ticketId.value));
-  } catch (error) {
-    console.error("Napaka pri nalaganju komentarjev:", error);
-  }
-};
-
 // **Shranjevanje sprememb ticketov**
 const saveChanges = async () => {
   try {
@@ -335,24 +331,6 @@ const saveChanges = async () => {
     alert("Spremembe shranjene!");
   } catch (error) {
     console.error("Napaka pri shranjevanju:", error);
-  }
-};
-
-// **Dodajanje komentarja**
-const sendComment = async () => {
-  if (!newComment.value.trim()) return;
-  const commentData = {
-    ticket_id: ticketId.value,
-    text: newComment.value,
-    public: isPublic.value,
-  };
-
-  try {
-    await addComment(commentData);
-    socket.emit("newComment", commentData);
-    newComment.value = "";
-  } catch (error) {
-    console.error("Napaka pri dodajanju komentarja:", error);
   }
 };
 
@@ -588,10 +566,73 @@ const loadTickets = async () => {
   }
 };
 
+const sendComment = (isPublic: boolean) => {
+  const text = isPublic ? newPublicComment.value : newPrivateComment.value;
+  if (!text.trim() && !uploadedFile.value) return;
+
+  console.log(uploadedFile.value);
+  let type;
+
+  if (uploadedFile.value) {
+    type = {
+      type: "document",
+      content: uploadedFile.value,
+    };
+    uploadedFile.value = null;
+  }
+  else
+  {
+    type = {
+      type: "text",
+      content: text,
+    };
+    if (isPublic) 
+      newPublicComment.value = ""; 
+    else
+      newPrivateComment.value = ""; 
+  }
+
+  const commentData = {
+    ticket_id: ticketId.value,
+    message: type, 
+    isPrivate: !isPublic
+  };
+
+  socket.emit("sendMessage", commentData); // Pošlji sporočilo preko WebSocket-a
+};
+
+// **Povleci in spusti datoteko**
+const handleFileDrop = (event: DragEvent) => {
+  event.preventDefault();
+  if (event.dataTransfer?.files.length) {
+    uploadedFile.value = event.dataTransfer.files[0];
+  }
+};
+
+const handleFileSelect = (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  if (input.files && input.files.length > 0) {
+    uploadedFile.value = input.files[0];
+  }
+};
+
 onMounted(async () => {
   await loadTicket();
-  //await loadComments();
-  /*socket.on(`ticket:${ticketId.value}`, (message: any) => {
+
+  socket.emit("joinTicket", ticketId.value); // Pridruži se sobi WebSocket-a
+
+  // Pridobi pretekle komentarje preko WebSocket-a
+  socket.on("chatHistory", (messages) => {
+    comments.value = messages;
+  });
+
+  // Poslušaj nova sporočila v realnem času
+  socket.on("newMessage", (message) => {
+    comments.value.unshift(message);
+  });
+
+  /*// **WebSocket za poslušanje novih sporočil**
+  socket.on(`ticket:${ticketId.value}`, (message: any) => {
     comments.value.unshift(message);
   });*/
 });
@@ -609,7 +650,6 @@ const getDataFunction = () => {
     getData = !getData;
   }
 };
-
 </script>
 
 <template>
@@ -792,21 +832,56 @@ const getDataFunction = () => {
       </div>
 
     </form>
-
-    <!-- Komentarji -->
+ 
+    <!-- Sekcija za komunikacijo -->
     <div class="ticket-comments">
       <h3>Komunikacija</h3>
-      <textarea v-model="newComment" placeholder="Vnesi komentar..." class="input-field"></textarea>
-      <label>
-        <input type="checkbox" v-model="isPublic" />
-        Javno sporočilo
-      </label>
-      <button @click="sendComment" class="btn-primary">Pošlji</button>
+      
+      <!-- Vnos polja za javna in zasebna sporočila -->
+      <div class="comment-inputs">
+        <textarea v-model="newPublicComment" placeholder="Vnesi javni komentar..." class="input-field"></textarea>
+        <div class="ticket-nav">
+          <button @click="sendComment(true)" class="btn-send">Pošlji</button>
+        </div>
 
+        <textarea v-model="newPrivateComment" placeholder="Vnesi zasebni komentar..." class="input-field"></textarea>
+        <div class="ticket-nav">
+          <button @click="sendComment(false)" class="btn-send">Pošlji</button>
+        </div>
+      </div>
+
+      <!-- Povleci in spusti za datoteke + možnost izbire datoteke -->
+      <div class="file-upload">
+        <div class="file-drop-zone" @dragover.prevent @drop="handleFileDrop">
+          Povleci in spusti datoteko tukaj
+        </div>
+        <label class="file-label">
+          <input type="file" @change="handleFileSelect" hidden />
+          Izberi datoteko
+        </label>
+      </div>
+
+      <div v-if="uploadedFile" class="uploaded-file">
+        Pripravljeno za pošiljanje: {{ uploadedFile.name }}
+      </div>
+
+      <!-- Število sporočil -->
+      <div class="comment-count">
+        Javni komentarji: {{ comments.filter(c => c.private === false).length }} | Zasebni komentarji: {{ comments.filter(c => c.private === true).length }}
+      </div>
+
+      <!-- Seznam komentarjev -->
       <ul class="comment-list">
-        <li v-for="comment in comments" :key="comment.id">
-          <strong>{{ comment.public ? "🟢 Javno" : "🔒 Zasebno" }}:</strong>
-          {{ comment.text }}
+        <li v-for="comment in comments" :key="comment.id" :class="{'public-comment': comment.private === false, 'private-comment': comment.private === true}">
+          <strong>
+            <i class="bi" :class="comment.private === false ? 'bi-globe' : 'bi-lock'"></i>
+            {{ comment.name }} 
+            <span class="date">{{ formatDate(comment.created_at) }}</span>
+          </strong>
+          <p v-if="comment.message.type === 'text'">{{ comment.message.content }}</p>
+          <a v-if="comment.message.type === 'document'" :href="comment.message.content" target="_blank" class="file-link">
+            📎 Prenesi datoteko
+          </a>
         </li>
       </ul>
     </div>
@@ -823,11 +898,23 @@ const getDataFunction = () => {
     width: calc(100% - 250px);
 }
 
+.comment-list {
+    list-style-type: none;
+    padding: 0;
+    margin-left: 0px;
+    margin-right: 0px;
+    width: calc(100% - 280px);
+  }
+
 @media (max-width: 768px) {
     .content-wrapper {
         margin-top: 50px;
         margin-left: 0; /* Če je sidebar skrit */
         width: 100%;
+    }
+
+    .comment-list {
+      width: calc(100% - 30px);
     }
 }
 
@@ -872,6 +959,13 @@ const getDataFunction = () => {
 .form-row {
   display: flex;
   gap: 20px;
+}
+
+.file-upload {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 10px;
 }
 
 .form-group {
@@ -983,13 +1077,90 @@ li:hover {
   border-radius: 5px;
 }
 
-.comment-list {
-  list-style-type: none;
-  padding: 0;
+.comment-list li {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+.comment-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.file-drop-zone {
+  border: 2px dashed #00B0BE;
+  padding: 10px;
+  text-align: center;
+  cursor: pointer;
+  flex-grow: 1;
+}
+
+.uploaded-file {
+  color: green;
+  font-weight: bold;
+  margin-top: 5px;
+}
+
+.comment-count {
+  margin-top: 10px;
+  font-weight: bold;
 }
 
 .comment-list li {
   padding: 10px;
   border-bottom: 1px solid #ddd;
+  margin-top: 10px;
 }
+
+.public-comment {
+  background-color: #e6f7ff;
+  border-left: 5px solid #00B0BE;
+}
+
+.private-comment {
+  background-color: #fff3e6;
+  border-left: 5px solid #ff7b00;
+}
+
+.file-link {
+  display: block;
+  margin-top: 5px;
+  color: #00B0BE;
+  text-decoration: none;
+}
+
+.file-link {
+  display: block;
+  margin-top: 5px;
+  color: #00B0BE;
+  text-decoration: none;
+}
+
+.file-label {
+  display: inline-block;
+  background-color: #746EBC;
+  color: white;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  text-align: center;
+}
+
+.btn-send {
+  background-color: #00B0BE;
+  color: white;
+  padding: 8px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  width: fit-content;
+  text-align: center;
+}
+
+.date {
+  float: right;
+}
+
 </style>

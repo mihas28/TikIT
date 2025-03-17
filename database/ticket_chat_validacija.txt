@@ -5,7 +5,8 @@
       'ticket_id',
       'message',
       'created_at',
-      'private'
+      'private',
+      'name'
     ],
     properties: {
       ticket_id: {
@@ -41,6 +42,10 @@
       created_at: {
         bsonType: 'date',
         description: 'Čas ustvarjanja sporočila'
+      },
+      name: {
+        bsonType: 'string',
+        description: 'Ime avtorja sporočila'
       }
     }
   }

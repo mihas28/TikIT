@@ -4,6 +4,10 @@ import express from 'express';
 import { Request, Response } from 'express';
 import { Application } from 'express-serve-static-core';
 import multer from 'multer';
+import jwt from "jsonwebtoken";
+
+import http from 'http';
+import { Server } from 'socket.io';
 
 interface AuthenticatedRequest extends Request {
     user?: { userId: number };
@@ -14,13 +18,23 @@ import { getCompany, verifyUser, registerUser, getAllCompanies,
   getUserById, updateUser, updatePasswordWithOld, updatePasswordWithoutOld, getAllGroups, getGroupById, createGroup, updateGroup, 
   getAllTickets, getTicketById, createTicket, updateTicket, getTimeWorkedByUserAndTicket, createTimeWorked, updateTimeWorked,
   getAllCompaniesEssential, getAllContractsEssential, getAllUsersEssential, getAllGroupsEssential, getAllTicketsEssential,
-  getTimeWorkedByTicket, updatePrimary, syncAdditionalResolvers} from './db/postgres';
+  getTimeWorkedByTicket, updatePrimary, syncAdditionalResolvers, getNameLastNamebyUserId} from './db/postgres';
 import connectMongo, { getChatsByTicketId, createChat } from './db/mongo';
 import { authenticateJWT, generateAccessToken, generateRefreshToken, refreshToken, authorizeRoles } from './middleware/auth';
+import { check } from 'express-validator';
 
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: 'http://localhost:5173', // Enako kot za Express
+        methods: ['GET', 'POST'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+        credentials: true
+    }
+});
 const PORT = process.env.PORT || 3000;
 
 // Middleware za obdelavo JSON telesa
@@ -28,7 +42,7 @@ app.use(express.json());
 
 // Nastavitve za CORS
 app.use(cors({
-    origin: 'http://localhost:5173', // Dovoli samo tvoj frontend (prilagodi po potrebi)
+    origin: 'http://localhost:5173',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -84,7 +98,7 @@ app.get('/chat/privat/:ticket_id', authenticateJWT, authorizeRoles('admin', 'ope
             return;
         }
 
-        const chatData = await getChatsByTicketId(ticketId, true);
+        const chatData = await getChatsByTicketId(ticketId);
         res.status(200).json(chatData);
     } catch (error) {
         console.error(`Napaka pri pridobivanju podatkov za ticket_id=${req.params.ticket_id}:`, error);
@@ -103,7 +117,7 @@ app.get('/chat/public/:ticket_id', authenticateJWT, authorizeRoles('admin', 'ope
             return;
         }
 
-        const chatData = await getChatsByTicketId(ticketId, false);
+        const chatData = await getChatsByTicketId(ticketId);
         res.status(200).json(chatData);
     } catch (error) {
         console.error(`Napaka pri pridobivanju podatkov za ticket_id=${req.params.ticket_id}:`, error);
@@ -114,10 +128,11 @@ app.get('/chat/public/:ticket_id', authenticateJWT, authorizeRoles('admin', 'ope
 // **API endpoint za ustvarjanje novega privat chat sporočila**
 app.post('/chat/privat', authenticateJWT, authorizeRoles('admin', 'operator'), async (req: Request, res: Response) => {
     try {
-        const { ticket_id, message } = req.body as { 
+        const { ticket_id, message, name } = req.body as { 
           ticket_id: number; 
           message: { type: string; content: string | Buffer };
           private: boolean;
+          name: string;
         };
 
         if (!ticket_id || !message || !message.type || !message.content) {
@@ -130,7 +145,7 @@ app.post('/chat/privat', authenticateJWT, authorizeRoles('admin', 'operator'), a
             return;
         }
         
-        const newChat = await createChat(ticket_id, message, true);
+        const newChat = await createChat(ticket_id, message, true, name);
         res.status(201).json(newChat);
     } catch (error) {
         console.error('Napaka pri ustvarjanju chat sporočila:', error);
@@ -141,10 +156,11 @@ app.post('/chat/privat', authenticateJWT, authorizeRoles('admin', 'operator'), a
 // **API endpoint za ustvarjanje novega javnega chat sporočila**
 app.post('/chat/public', authenticateJWT, authorizeRoles('admin', 'operator', 'user'), async (req: Request, res: Response) => {
     try {
-        const { ticket_id, message } = req.body as { 
+        const { ticket_id, message, name } = req.body as { 
           ticket_id: number; 
           message: { type: string; content: string | Buffer };
           private: boolean;
+          name: string;
         };
 
         if (!ticket_id || !message || !message.type || !message.content) {
@@ -157,7 +173,7 @@ app.post('/chat/public', authenticateJWT, authorizeRoles('admin', 'operator', 'u
             return;
         }
         
-        const newChat = await createChat(ticket_id, message, false);
+        const newChat = await createChat(ticket_id, message, false, name);
         res.status(201).json(newChat);
     } catch (error) {
         console.error('Napaka pri ustvarjanju chat sporočila:', error);
@@ -772,7 +788,7 @@ app.post('/tickets', authenticateJWT, async (req: Request, res: Response) => {
       }
 
       const newTicket = await createTicket(title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id);
-      createChat(newTicket.ticket_id, { type: "text", content: "Ticket z številko " + newTicket.ticket_id + " uspešno ustvarjen dne " + formatDate(new Date())}, false);
+      createChat(newTicket.ticket_id, { type: "text", content: "Ticket z številko " + newTicket.ticket_id + " uspešno ustvarjen dne " + formatDate(new Date())}, false, "system");
       res.status(201).json(newTicket);
   } catch (error) {
       console.error('Napaka pri dodajanju zahtevka:', error);
@@ -914,9 +930,129 @@ app.put('/time-worked/update', authenticateJWT, authorizeRoles('admin', 'operato
     }
 });
 
-// Inicializacija baz in zagon Express strežnika
-initializeDatabases().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Express strežnik teče na http://localhost:${PORT}`);
+const connectedUsers: { [key: string]: string[] } = {}; // { userId: [ticket_id1, ticket_id2] }
+
+export const getUserIdFromJWT = (token: string): number | null => {
+    try {
+        if (!process.env.JWT_SECRET) {
+            throw new Error("JWT_SECRET is not defined");
+        }
+        const decoded = jwt.verify(token, process.env.JWT_SECRET) as unknown as { userId: number };
+        return decoded.userId;
+    } catch (error) {
+        console.error("Napaka pri dekodiranju JWT:", error);
+        return null;
+    }
+};
+
+io.use((socket, next) => {
+    try
+    {
+        const token = socket.handshake.auth?.token || socket.handshake.headers.authorization?.split(' ')[1];
+  
+        if (!token) {
+            return next(new Error('Avtentikacija ni uspela: Manjkajoč JWT token'));
+        }
+    
+        // Uporabi obstoječo funkcijo `authenticateJWT`
+        const mockRequest = {
+            headers: { authorization: `Bearer ${token}` },
+            get: (header: string) => {
+                return header === 'authorization' ? `Bearer ${token}` : undefined;
+            }
+        } as Request;
+
+        authenticateJWT(mockRequest, {} as Response, (err) => {
+        if (err) {
+            return next(new Error('Neveljaven JWT token'));
+        }
+        next();
+        });
+    }
+    catch (error) {}
   });
+
+  const checkJWT = (socket: any) => {
+    const token = socket.handshake.auth?.token || socket.handshake.headers.authorization?.split(' ')[1];
+  
+    if (!token) {
+        console.log('Avtentikacija ni uspela: Manjkajoč JWT token');
+        return false
+    }
+    
+    // Uporabi obstoječo funkcijo `authenticateJWT`
+    const mockRequest = {
+        headers: { authorization: `Bearer ${token}` },
+        get: (header: string) => {
+            return header === 'authorization' ? `Bearer ${token}` : undefined;
+        }
+    } as Request;
+
+    authenticateJWT(mockRequest, {} as Response, (err) => {
+    if (err) {
+        console.log('Neveljaven JWT token');
+        return false
+    }
+    });
+}
+  
+io.on('connection', (socket) => {
+    const token = socket.handshake.auth?.token || socket.handshake.headers.authorization?.split(' ')[1];
+    const userId = getUserIdFromJWT(token);
+
+    if (userId === null) {
+        console.error('Napaka pri pridobivanju userId iz JWT');
+        return;
+    }
+
+    console.log('Uporabnik povezan: ' + userId);
+
+    socket.on('joinTicket', async (ticketId: number) => {
+        socket.join(`ticket_${ticketId}`);
+
+        // Preveri, ali `connectedUsers[userId]` že obstaja, če ne, ga inicializiraj
+        if (!connectedUsers[userId]) {
+            connectedUsers[userId] = [];
+        }
+
+        if (!connectedUsers[userId].includes(`ticket_${ticketId}`)) {
+            connectedUsers[userId].push(`ticket_${ticketId}`);
+        }
+
+        // Pošlji obstoječa sporočila iz baze
+        const messages = await getChatsByTicketId(ticketId);
+        socket.emit('chatHistory', messages);
+    });
+
+    socket.on('sendMessage', async ({ ticket_id, message, isPrivate }) => {
+        try {
+            // Shrani v bazo
+            const name = await getNameLastNamebyUserId(userId);
+            const savedMessage = await createChat(ticket_id, message, isPrivate, name[0].name);
+
+            // Pošlji vsem v sobi (samo zasebno, če je `isPrivate` true)
+            io.to(`ticket_${ticket_id}`).emit('newMessage', savedMessage);
+        } catch (err) {
+            console.error('Napaka pri shranjevanju sporočila:', err);
+        }
+    });
+
+    socket.on('disconnect', () => {
+        if (connectedUsers[userId]) {
+            connectedUsers[userId].forEach((room) => {
+                socket.leave(room);
+            });
+            delete connectedUsers[userId];
+        }
+        console.log(`Uporabnik ${userId} se je odklopil`);
+    });
 });
+
+  
+// Inicializacija baz, zagon Express strežnika in zgon Socket.io strežnika
+initializeDatabases().then(() => {
+    server.listen(PORT, () => { 
+      console.log(`Strežnik teče na http://localhost:${PORT}`);
+    });
+});
+  
