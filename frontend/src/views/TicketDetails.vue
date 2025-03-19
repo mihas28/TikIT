@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
-import { fetchTicketDetails, updateTicket, addComment, fetchComments, fetchUsersCreate, fetchCompanyDataCreate, fetchContractsCreate, fetchGroupsCreate, assignTicketUpdate, fetchTicketDataCreate, assignTicket, assignTicketUpdateAdditional, getAllAssignees } from '@/api/api';
+import { fetchTicketDetails, updateTicket, addComment, fetchComments, uploadChatFile, fetchUsersCreate, fetchCompanyDataCreate, fetchContractsCreate, fetchGroupsCreate, assignTicketUpdate, fetchTicketDataCreate, assignTicket, assignTicketUpdateAdditional, getAllAssignees } from '@/api/api';
 import { io } from 'socket.io-client';
 import WorkLogModal from '../components/ticket_components/WorkLogModal.vue';
 import { useAuthStore } from '../stores/authStore';
@@ -25,12 +25,17 @@ const newPublicComment = ref('');
 const newPrivateComment = ref('');
 const uploadedFile = ref<File | null>(null);
 const authStore = useAuthStore();
+
 const socket = io(import.meta.env.VITE_SOCKET_URL, {
-  query: { user_id: 123 }, 
+  query: { user_id: 123 },
   transports: ["websocket"],
   auth: {
-    token: authStore.accessToken // Pošlje JWT ob vzpostavitvi povezave
-  }
+    token: authStore.accessToken,
+  },
+  reconnection: true, // Omogoči ponovno povezovanje
+  reconnectionAttempts: 10000, // Največ 10000 poskusov
+  reconnectionDelay: 200, // 2 sekundi med poskusi
+  timeout: 250000, // Časovna omejitev za povezavo
 });
 
 const isLoading = ref(false);
@@ -566,46 +571,94 @@ const loadTickets = async () => {
   }
 };
 
-const sendComment = (isPublic: boolean) => {
+const sendComment = async (isPublic: boolean) => {
   const text = isPublic ? newPublicComment.value : newPrivateComment.value;
   if (!text.trim() && !uploadedFile.value) return;
 
-  console.log(uploadedFile.value);
-  let type;
+  let messageData: any = {
+    ticket_id: ticketId.value,
+    isPrivate: !isPublic,
+  };
 
   if (uploadedFile.value) {
-    type = {
-      type: "document",
-      content: uploadedFile.value,
-    };
-    uploadedFile.value = null;
-  }
-  else
-  {
-    type = {
+    const file = uploadedFile.value;
+
+    if (file.type === "application/pdf") {
+      try {
+        const response = await uploadChatFile(Number(ticketId.value), file, !isPublic);
+        const newMessage = response.data;
+        uploadedFile.value = null; // **Pošiljanje uspešno - resetiraj datoteko**
+
+        // ** Pošlji obvestilo preko WebSocket-a**
+        socket.emit("newFileUploaded", newMessage);
+      } catch (error) {
+        console.error("Napaka pri nalaganju PDF:", error);
+      }
+    } else {
+      const reader = new FileReader();
+      reader.onload = () => {
+        messageData.message = {
+          type: file.type.startsWith("image") ? "image" : "document",
+          content: reader.result,
+        };
+
+        socket.emit("sendMessage", messageData, (ack: any) => {
+          if (ack?.success) uploadedFile.value = null;
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  } else {
+    messageData.message = {
       type: "text",
       content: text,
     };
-    if (isPublic) 
-      newPublicComment.value = ""; 
-    else
-      newPrivateComment.value = ""; 
+
+    socket.emit("sendMessage", messageData, (ack: any) => {
+      if (ack?.success) {
+        if (isPublic) newPublicComment.value = "";
+        else newPrivateComment.value = "";
+      }
+    });
+  }
+};
+
+const openDocument = (base64String: string, filename: string = "dokument.pdf") => {
+  if (!base64String.startsWith("data:")) {
+    base64String = `data:application/pdf;base64,${base64String}`;
   }
 
-  const commentData = {
-    ticket_id: ticketId.value,
-    message: type, 
-    isPrivate: !isPublic
-  };
+  const byteCharacters = atob(base64String.split(",")[1]); // Pretvori Base64 v binarne podatke
+  const byteNumbers = new Array(byteCharacters.length);
 
-  socket.emit("sendMessage", commentData); // Pošlji sporočilo preko WebSocket-a
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+
+  const byteArray = new Uint8Array(byteNumbers);
+  const blob = new Blob([byteArray], { type: "application/pdf" });
+  const blobUrl = URL.createObjectURL(blob);
+
+  // **Odpri PDF v novem zavihku**
+  const newTab = window.open(blobUrl, "_blank");
+  if (!newTab) {
+    alert("Dovoli pojavna okna za ogled datotek!");
+    return;
+  }
+
+  // **Počisti URL, ko ni več potreben**
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
 };
 
 // **Povleci in spusti datoteko**
 const handleFileDrop = (event: DragEvent) => {
   event.preventDefault();
-  if (event.dataTransfer?.files.length) {
-    uploadedFile.value = event.dataTransfer.files[0];
+  const file = event.dataTransfer?.files[0];
+
+  if (file && (file.type === "application/pdf" || file.type.startsWith("image/"))) {
+    uploadedFile.value = file;
+  } else {
+    alert("Dovoljene so samo slike (.jpg, .png) in PDF datoteke!");
   }
 };
 
@@ -626,15 +679,25 @@ onMounted(async () => {
     comments.value = messages;
   });
 
-  // Poslušaj nova sporočila v realnem času
+  // ** Poslušaj nova sporočila v realnem času**
   socket.on("newMessage", (message) => {
     comments.value.unshift(message);
   });
 
-  /*// **WebSocket za poslušanje novih sporočil**
-  socket.on(`ticket:${ticketId.value}`, (message: any) => {
+  // ** Poslušaj novo naložene datoteke**
+  socket.on("newFileUploaded", (message) => {
     comments.value.unshift(message);
-  });*/
+  });
+
+  socket.on("disconnect", (reason) => {
+    console.error("Socket odklopljen:", reason);
+    if (reason === "transport close") {
+      console.warn("Povezava zaprta. Poskus ponovne povezave...");
+      setTimeout(() => {
+        socket.connect(); // Ročno sproži reconnect
+      }, 3000);
+    }
+  });
 });
 
 const getDataFunction = () => {
@@ -832,6 +895,8 @@ const getDataFunction = () => {
       </div>
 
     </form>
+
+    <br>
  
     <!-- Sekcija za komunikacijo -->
     <div class="ticket-comments">
@@ -856,7 +921,7 @@ const getDataFunction = () => {
           Povleci in spusti datoteko tukaj
         </div>
         <label class="file-label">
-          <input type="file" @change="handleFileSelect" hidden />
+          <input type="file" accept=".jpg, .jpeg, .png, .pdf" @change="handleFileSelect" hidden />
           Izberi datoteko
         </label>
       </div>
@@ -872,17 +937,29 @@ const getDataFunction = () => {
 
       <!-- Seznam komentarjev -->
       <ul class="comment-list">
-        <li v-for="comment in comments" :key="comment.id" :class="{'public-comment': comment.private === false, 'private-comment': comment.private === true}">
+        <li v-for="comment in comments" :key="comment.created_at" :class="{
+            'public-comment': comment.private === false,
+            'private-comment': comment.private === true
+          }">
           <strong>
             <i class="bi" :class="comment.private === false ? 'bi-globe' : 'bi-lock'"></i>
-            {{ comment.name }} 
+            {{ comment.name }}
             <span class="date">{{ formatDate(comment.created_at) }}</span>
           </strong>
-          <p v-if="comment.message.type === 'text'">{{ comment.message.content }}</p>
-          <a v-if="comment.message.type === 'document'" :href="comment.message.content" target="_blank" class="file-link">
-            📎 Prenesi datoteko
+
+          <br><br>
+
+          <p v-if="comment.message && comment.message.type === 'text'" class="comment-text">
+            {{ comment.message.content }}
+          </p>
+
+          <img v-else-if="comment.message.type === 'image'" :src="comment.message.content" style="max-width: 40%; border-radius: 5px;" />
+
+          <a v-else class="file-link" @click.prevent="openDocument(comment.message.content, comment.message.filename)">
+            <i class="bi bi-file-earmark-pdf"></i> {{ comment.message.filename || "Odpri dokument" }}
           </a>
         </li>
+        <li></li>
       </ul>
     </div>
 
@@ -989,10 +1066,13 @@ input, select, textarea, ul, li {
   border-radius: 5px;
 }
 
+textarea {
+  min-height: 150px;
+}
+
 ul {
   list-style: none;
   background: white;
-  border: 1px solid #ccc;
   padding: 0;
   margin: 0;
   position: absolute;
@@ -1077,11 +1157,6 @@ li:hover {
   border-radius: 5px;
 }
 
-.comment-list li {
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
-}
-
 .comment-inputs {
   display: flex;
   flex-direction: column;
@@ -1111,6 +1186,7 @@ li:hover {
   padding: 10px;
   border-bottom: 1px solid #ddd;
   margin-top: 10px;
+  border-radius: 10px;
 }
 
 .public-comment {
@@ -1161,6 +1237,10 @@ li:hover {
 
 .date {
   float: right;
+}
+
+.comment-text {
+  white-space: pre-line; /* Omogoči prelom vrstic */
 }
 
 </style>

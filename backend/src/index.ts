@@ -33,7 +33,10 @@ const io = new Server(server, {
         methods: ['GET', 'POST'],
         allowedHeaders: ['Content-Type', 'Authorization'],
         credentials: true
-    }
+    },
+    transports: ["websocket"], // Omogoči samo WebSocket (brez long polling)
+    pingInterval: 25000, // Pošlji ping vsakih 25s
+    pingTimeout: 60000, // Počakaj 60s pred timeoutom
 });
 const PORT = process.env.PORT || 3000;
 
@@ -130,7 +133,7 @@ app.post('/chat/privat', authenticateJWT, authorizeRoles('admin', 'operator'), a
     try {
         const { ticket_id, message, name } = req.body as { 
           ticket_id: number; 
-          message: { type: string; content: string | Buffer };
+          message: { type: string; content: string | Buffer, filename: string };
           private: boolean;
           name: string;
         };
@@ -158,7 +161,7 @@ app.post('/chat/public', authenticateJWT, authorizeRoles('admin', 'operator', 'u
     try {
         const { ticket_id, message, name } = req.body as { 
           ticket_id: number; 
-          message: { type: string; content: string | Buffer };
+          message: { type: string; content: string | Buffer, filename: string };
           private: boolean;
           name: string;
         };
@@ -788,7 +791,7 @@ app.post('/tickets', authenticateJWT, async (req: Request, res: Response) => {
       }
 
       const newTicket = await createTicket(title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id);
-      createChat(newTicket.ticket_id, { type: "text", content: "Ticket z številko " + newTicket.ticket_id + " uspešno ustvarjen dne " + formatDate(new Date())}, false, "system");
+      createChat(newTicket.ticket_id, { type: "text", content: "Ticket z številko " + newTicket.ticket_id + " uspešno ustvarjen dne " + formatDate(new Date()), filename: ''}, false, "system");
       res.status(201).json(newTicket);
   } catch (error) {
       console.error('Napaka pri dodajanju zahtevka:', error);
@@ -930,6 +933,46 @@ app.put('/time-worked/update', authenticateJWT, authorizeRoles('admin', 'operato
     }
 });
 
+// **API za nalaganje PDF datotek**
+// @ts-ignore
+app.post("/chat/upload", upload.single("file"), authenticateJWT, async (req: Request, res: Response) => {
+    try {
+      const { ticket_id, isPrivate, filename } = req.body;
+      const file = req.file;
+  
+      if (!ticket_id || !file || !filename) {
+        return res.status(400).json({ error: "Manjkajo podatki" });
+      }
+  
+      const ticketId = parseInt(ticket_id, 10);
+      if (isNaN(ticketId)) {
+        return res.status(400).json({ error: "Neveljaven `ticket_id`" });
+      }
+
+      const userId = getUserIdFromJWT(req.headers.authorization?.split(' ')[1] ?? '');
+      if (userId === null) {
+          console.error('Napaka pri pridobivanju userId iz JWT');
+          return;
+      }
+      const name = await getNameLastNamebyUserId(userId);
+  
+      // **Shrani PDF v MongoDB (ali v datotečni sistem)**
+      const newChat = await createChat(ticketId, {
+        type: "document",
+        content: file.buffer.toString("base64"), // Pretvori v Base64
+        filename: filename,
+      }, isPrivate === "true", name[0].name);
+
+      // ** Pošlji obvestilo uporabnikom prek WebSocket-a**
+      io.to(`ticket_${ticketId}`).emit("newMessage", newChat);
+  
+      res.status(201).json(newChat);
+    } catch (error) {
+      console.error("Napaka pri nalaganju PDF-ja:", error);
+      res.status(500).json({ error: "Napaka pri shranjevanju datoteke" });
+    }
+  });
+  
 const connectedUsers: { [key: string]: string[] } = {}; // { userId: [ticket_id1, ticket_id2] }
 
 export const getUserIdFromJWT = (token: string): number | null => {
@@ -1024,28 +1067,35 @@ io.on('connection', (socket) => {
         socket.emit('chatHistory', messages);
     });
 
-    socket.on('sendMessage', async ({ ticket_id, message, isPrivate }) => {
+    socket.on('sendMessage', async ({ ticket_id, message, isPrivate }, callback) => {
         try {
-            // Shrani v bazo
-            const name = await getNameLastNamebyUserId(userId);
-            const savedMessage = await createChat(ticket_id, message, isPrivate, name[0].name);
+          const name = await getNameLastNamebyUserId(userId);
+          const savedMessage = await createChat(ticket_id, message, isPrivate, name[0].name);
 
-            // Pošlji vsem v sobi (samo zasebno, če je `isPrivate` true)
-            io.to(`ticket_${ticket_id}`).emit('newMessage', savedMessage);
+          console.log('Poslano sporočilo:', savedMessage);
+      
+          io.to(`ticket_${ticket_id}`).emit('newMessage', savedMessage); // Pošlje samo enkrat
+      
+          if (callback) {
+            callback({ success: true });
+          }
         } catch (err) {
-            console.error('Napaka pri shranjevanju sporočila:', err);
+          console.error('Napaka pri shranjevanju sporočila:', err);
+          if (callback) {
+            callback({ success: false });
+          }
         }
-    });
-
-    socket.on('disconnect', () => {
+    });      
+            
+    socket.on("disconnect", (reason) => {
+        console.warn(`Uporabnik ${userId} se je odklopil: ${reason}`);
         if (connectedUsers[userId]) {
-            connectedUsers[userId].forEach((room) => {
-                socket.leave(room);
-            });
-            delete connectedUsers[userId];
+          connectedUsers[userId].forEach((room) => {
+            socket.leave(room);
+          });
+          delete connectedUsers[userId];
         }
-        console.log(`Uporabnik ${userId} se je odklopil`);
-    });
+    }); 
 });
 
   

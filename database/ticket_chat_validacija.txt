@@ -32,6 +32,10 @@
               'binData'
             ],
             description: 'Vsebina sporočila (besedilo, URL ali binarni dokument)'
+          },
+          filename: {
+            bsonType: 'string',
+            description: 'Ime datoteke (samo za dokumente, opcijsko)'
           }
         }
       },

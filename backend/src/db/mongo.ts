@@ -104,7 +104,7 @@ export const getChatsByTicketId = async (ticketId: number, /*privateMessage: boo
 };
 
 // **Funkcija za ustvarjanje novega chat sporočila v MongoDB**
-export const createChat = async (ticket_id: number, message: { type: string, content: string | Buffer }, isPrivate: boolean, name: string ) => {
+export const createChat = async (ticket_id: number, message: { type: string, content: string | Buffer, filename: string }, isPrivate: boolean, name: string ) => {
   try {
       const newChat = new ChatModel({
           ticket_id,

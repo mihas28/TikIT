@@ -1,6 +1,8 @@
 import axios from 'axios';
 import { useAuthStore } from '@/stores/authStore';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 // **Funkcija za pridobivanje podatkov iz /company**
 export const fetchCompanyData = async () => {
   try {
@@ -525,3 +527,21 @@ export const getAllAssignees = async (ticket_id: string) => {
     throw error;
   }
 };
+
+// **Funkcija za nalaganje dokumenta**
+export const uploadChatFile = async (ticketId: number, file: File, isPrivate: boolean) => {
+  const authStore = useAuthStore();
+  const formData = new FormData();
+  formData.append("ticket_id", String(ticketId));
+  formData.append("isPrivate", String(isPrivate));
+  formData.append("file", file);
+  formData.append("filename", file.name);
+
+  return await axios.post(`${API_URL}/chat/upload`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+      Authorization: `Bearer ${authStore.accessToken}`,
+    },
+  });
+};
+
