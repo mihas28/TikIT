@@ -35,7 +35,7 @@ const changePassword = async () => {
   <div class="modal">
     <div class="modal-content">
       <h3>Spremeni geslo</h3>
-      <label>Nova geslo:</label>
+      <label>Novo geslo:</label>
       <input v-model="newPassword" type="password" />
 
       <label>Potrdi geslo:</label>

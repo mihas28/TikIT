@@ -5,6 +5,7 @@ import { fetchTicketDetails, updateTicket, addComment, fetchComments, uploadChat
 import { io } from 'socket.io-client';
 import WorkLogModal from '../components/ticket_components/WorkLogModal.vue';
 import { useAuthStore } from '../stores/authStore';
+import { jwtDecode } from "jwt-decode";
 import { formatRFC3339 } from 'date-fns';
 
 const route = useRoute();
@@ -18,6 +19,8 @@ const formatDate = (dateString: string): string => {
 
 let getData: boolean = true;
 let oldUserId: number = 0;
+
+const currentUserId = ref<string>('');
 
 const comments = ref<any[]>([]);
 const ticket_comments = ref<any>({});
@@ -36,7 +39,25 @@ const socket = io(import.meta.env.VITE_SOCKET_URL, {
   reconnectionAttempts: 10000, // Največ 10000 poskusov
   reconnectionDelay: 200, // 2 sekundi med poskusi
   timeout: 250000, // Časovna omejitev za povezavo
-});
+}); 
+
+const getUserIdFromJWT = () => {
+  const authStore = useAuthStore();
+  const token = authStore.accessToken; // Pridobi JWT iz Pinia
+
+  if (!token) {
+    console.error("JWT ni na voljo");
+    return null;
+  }
+
+  try {
+    const decoded: { userId?: string } = jwtDecode(token); // Dekodiraj JWT
+    return decoded.userId || null; // Vrni `userId`
+  } catch (error) {
+    console.error("Napaka pri dekodiranju JWT:", error);
+    return null;
+  }
+};
 
 const isLoading = ref(false);
 const isWorkLogModalOpen = ref(false);
@@ -183,6 +204,24 @@ const getPriority = () => {
     }
 };
 
+const assignToMe = async () => {
+  await getDataFunction();
+  engineerSearch.value = users.value.find(u => u.id === parseInt(currentUserId.value, 10))?.name || '';
+  selectEngineer(users.value.find(u => u.id === parseInt(currentUserId.value, 10)));
+  additionalResolvers.value = additionalResolvers.value.filter(r => r.id !== parseInt(currentUserId.value, 10));
+  await saveChanges();
+  ticket.value.primary[0].user_id = parseInt(currentUserId.value, 10);
+};
+
+const resolveTicket = () => {
+  //socket.emit("resolveTicket", { ticket_id: ticketId.value });
+};
+
+const cancelTicket = () => {
+  //socket.emit("cancelTicket", { ticket_id: ticketId.value });
+};
+
+
 const formattedDate = ref('');
 
 // **Vidnost dropdowna**
@@ -203,11 +242,22 @@ const loadTicket = async () => {
     isLoading.value = true;
     ticket.value = await fetchTicketDetails(ticketId.value);
     oldUserId = ticket.value.primary[0].user_id;
+    console.log(ticket.value.primary[0].user_id);
     companySearch.value = ticket.value.ticket.company_name;
     callerSearch.value = ticket.value.ticket.caller;
     selectedCaller.value = { id: ticket.value.ticket.caller_id, name: ticket.value.ticket.caller };
     contractSearch.value = ticket.value.ticket.contract_name;
     selectedContract.value = { id: ticket.value.ticket.contract_id, name: ticket.value.ticket.contract_name };
+
+    //dodano 20.3
+    selectedCompany.value = { id: ticket.value.ticket.company_id, name: ticket.value.ticket.company_name };
+    selectedCaller.value = { id: ticket.value.ticket.caller_id, name: ticket.value.ticket.caller };
+    selectedGroup.value = { id: ticket.value.ticket.group_id, name: ticket.value.ticket.assignment_group };
+    selectedEngineer.value = { id: ticket.value.primary[0].user_id, name: ticket.value.primary[0].resolver };
+    /*additionalResolvers.value = ticket.value.other.map((resolver: { user_id: number; resolver: string }) => ({
+      id: resolver.user_id,
+      name: resolver.resolver,
+    }));*/
 
     try
     {
@@ -227,7 +277,7 @@ const loadTicket = async () => {
       }
     }
     else
-     getDataFunction();
+     await getDataFunction();
 
     ticket.value.other.forEach(data => {
       addResolver({ id: data.user_id, name: data.resolver });
@@ -332,6 +382,9 @@ const saveChanges = async () => {
 
     // Shrani spremembe v bazo
     await updateTicket(String(ticketId.value), ticket.value.ticket);
+
+    //POMEMBNO - DODANI DEL ZA POSODOBITEV REŠEVALCA    
+    ticket.value.primary[0].user_id = selectedEngineer.value.id;
     
     alert("Spremembe shranjene!");
   } catch (error) {
@@ -496,8 +549,6 @@ const removeResolver = (user: any) => {
   }
   additionalResolvers.value = additionalResolvers.value.filter(r => r.id !== user.id);
 };
-
-
 
 // **Shrani podatke**
 const saveData = async () => {
@@ -670,6 +721,8 @@ const handleFileSelect = (event: Event) => {
 };
 
 onMounted(async () => {
+  currentUserId.value = getUserIdFromJWT() || '';
+
   await loadTicket();
 
   socket.emit("joinTicket", ticketId.value); // Pridruži se sobi WebSocket-a
@@ -700,14 +753,14 @@ onMounted(async () => {
   });
 });
 
-const getDataFunction = () => {
+const getDataFunction = async () => {
   if (getData)
   {
-    loadUsers();
-    loadCompanies();
-    loadContracts();
-    loadGroups();
-    loadTickets();
+    await loadUsers();
+    await loadCompanies();
+    await loadContracts();
+    await loadGroups();
+    await loadTickets();
     document.addEventListener("click", closeDropdowns);
     //document.removeEventListener("click", closeDropdowns)
     getData = !getData;
@@ -716,13 +769,30 @@ const getDataFunction = () => {
 </script>
 
 <template>
-  <div class="content-wrapper">
-    <!-- Navigacija z gumbi -->
-    <nav class="ticket-nav">
-      <button @click="saveChanges" class="btn-primary">Shrani</button>
-      <button @click="isWorkLogModalOpen = true" class="btn-secondary">Vpiši čas</button>
-      <button class="btn-danger">Prekliči zahtevek</button>
-    </nav>
+  <div v-if="isLoading" class="content-wrapper">
+    <p>Nalaganje zahtevka...</p>
+  </div>
+
+  <div v-if="!isLoading" class="content-wrapper">
+
+    <div class="nav-ticket">
+      <!-- Navigacija z gumbi -->
+      <nav class="ticket-nav">
+        <button @click="saveChanges" class="btn-primary">Shrani</button>
+        <button @click="resolveTicket" class="btn-warning">Razreši zahtevek</button>
+        <button v-if="ticket.ticket.state !== 'cancelled' && ticket.ticket.state !== 'new'"
+          @click="isWorkLogModalOpen = true"
+          class="btn-secondary">
+          Vpiši čas
+        </button>
+        <button v-if="ticket.primary[0].user_id !== parseInt(currentUserId,10) && ticket.ticket.caller_id !== parseInt(currentUserId,10) && ticket.ticket.state !== 'cancelled'" 
+          @click="assignToMe" 
+          class="btn-success">
+          Dodeli name
+        </button>
+        <button @click="cancelTicket" class="btn-danger">Prekliči zahtevek</button>
+      </nav>
+    </div>
 
     <!-- SLA indikator -->
     <div class="sla-indicator" v-if="ticket.ticket.accept_sla_breach">
@@ -905,12 +975,12 @@ const getDataFunction = () => {
       <!-- Vnos polja za javna in zasebna sporočila -->
       <div class="comment-inputs">
         <textarea v-model="newPublicComment" placeholder="Vnesi javni komentar..." class="input-field"></textarea>
-        <div class="ticket-nav">
+        <div class="ticket-nav1">
           <button @click="sendComment(true)" class="btn-send">Pošlji</button>
         </div>
 
         <textarea v-model="newPrivateComment" placeholder="Vnesi zasebni komentar..." class="input-field"></textarea>
-        <div class="ticket-nav">
+        <div class="ticket-nav1">
           <button @click="sendComment(false)" class="btn-send">Pošlji</button>
         </div>
       </div>
@@ -964,7 +1034,12 @@ const getDataFunction = () => {
     </div>
 
     <!-- Modal za beleženje časa -->
-    <WorkLogModal v-if="isWorkLogModalOpen" @close="isWorkLogModalOpen = false" :ticketId="ticketId" />
+    <WorkLogModal v-if="isWorkLogModalOpen" 
+              @close="isWorkLogModalOpen = false"
+              :ticketId="ticketId.toString()"
+              :userId="currentUserId.toString()" />
+              
+
   </div>
 </template>
 
@@ -983,6 +1058,24 @@ const getDataFunction = () => {
     width: calc(100% - 280px);
   }
 
+.ticket-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background-color: white;
+  padding: 10px;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  border-bottom: 2px solid #ddd;
+  z-index: 1000; 
+}
+
+.nav-ticket {
+  margin-bottom: 60px;
+}
+
 @media (max-width: 768px) {
     .content-wrapper {
         margin-top: 50px;
@@ -993,9 +1086,15 @@ const getDataFunction = () => {
     .comment-list {
       width: calc(100% - 30px);
     }
-}
 
-.ticket-nav {
+    .ticket-nav {
+      position: fixed;
+      top: 58px;
+      left: 0;
+    }
+  }
+
+.ticket-nav1 {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
@@ -1132,6 +1231,24 @@ li:hover {
 
 .btn-secondary {
   background-color: #746EBC;
+  color: white;
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.btn-success {
+  background-color: #994F97;
+  color: white;
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.btn-warning {
+  background-color: #009FCD;
   color: white;
   padding: 10px;
   border: none;

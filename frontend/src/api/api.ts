@@ -545,3 +545,53 @@ export const uploadChatFile = async (ticketId: number, file: File, isPrivate: bo
   });
 };
 
+// **Funkcija za nalaganje ur uporabnika za posamezen ticket**
+export const fetchWorkLog = async (ticketId: string, userId: string) => {
+  console.log(ticketId, userId);
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.get(`http://localhost:3000/time-worked/${userId}/${ticketId}`, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Napaka pri pridobivanju podatkov iz /tickets:', error);
+    throw error;
+  }
+};
+
+// **Funkcija za shranjevanje ur za posamezen ticket**
+export const createWorkLog = async (data: Record<string, any>) => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.post(`http://localhost:3000/time-worked`, data, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+};
+
+// **Funkcija za posodobitev podatkov uporabnika**
+export const saveWorkLog = async (ticketId: string, userId: string, updatedData: Record<string, any>) => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.put(`http://localhost:3000/time-worked/${userId}/${ticketId}`, updatedData, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Napaka pri posodabljanju podjetja vnosa časa (user ID: ${userId}, ticket ID: ${ticketId}):`, error);
+    throw error;
+  }
+};

@@ -837,6 +837,7 @@ app.get('/time-worked/:user_id/:ticket_id', authenticateJWT, authorizeRoles('adm
       }
 
       const timeWorked = await getTimeWorkedByUserAndTicket(user_id, ticket_id);
+      
       res.status(200).json(timeWorked);
   } catch (error) {
       console.error(`Napaka pri pridobivanju delovnega časa za user_id=${req.params.user_id} in ticket_id=${req.params.ticket_id}:`, error);

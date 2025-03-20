@@ -1,33 +1,122 @@
 <script setup lang="ts">
-import { defineProps, defineEmits, ref } from 'vue';
-//import { logWorkTime } from '@/api/api';
+import { defineProps, defineEmits, ref, onMounted } from 'vue';
+import { fetchWorkLog, saveWorkLog, createWorkLog } from '@/api/api';
+import { de } from 'date-fns/locale';
 
-defineProps<{ ticketId: string }>();
+const props = defineProps<{ ticketId: string; userId: string }>();
 const emit = defineEmits(["close"]);
 
-const workTime = ref({
-  date: new Date().toISOString().split("T")[0],
-  description: '',
-  normalHours: 0,
-  overtime: 0
-});
+const numberOfHours = ref(0);
+const description = ref('');
+const error = ref<string | null>(null);
 
-const submitWorkLog = async () => {
-  //await logWorkTime(ticketId, workTime.value);
-  emit("close");
+const newEntry = ref(false);
+
+// **Funkcija za pridobitev obstoječih podatkov iz API-ja**
+const loadWorkLog = async () => {
+  try {
+    const data = await fetchWorkLog(props.ticketId, props.userId);
+    if (data.length === 0) 
+    {
+      newEntry.value = true;
+      return;
+    }
+
+    numberOfHours.value = data[0].time_worked;
+    description.value = data[0].description;
+  
+  } catch (err) {
+    console.error("Napaka pri pridobivanju delovnega časa:", err);
+  } 
 };
+
+// **Funkcija za shranjevanje delovnega časa**
+const submitWorkLog = async () => {
+  if (newEntry.value)
+  {
+    try {
+      await createWorkLog({ticket_id: props.ticketId, user_id: props.userId, primary: null});
+      newEntry.value = false;
+    } catch (err) {
+      error.value = "Napaka pri shranjevanju delovnega časa.";
+      console.error(error.value, err);
+    }
+  }
+
+  try {
+    await saveWorkLog(props.ticketId, props.userId, {time_worked: numberOfHours.value, description: description.value});
+    alert("Delovni čas uspešno posodobljen!");      
+    emit("close");
+  } catch (err) {
+    error.value = "Napaka pri shranjevanju delovnega časa.";
+    console.error(error.value, err);
+  }
+};
+
+// **Ob nalaganju pridobi podatke iz API-ja**
+onMounted(loadWorkLog);
 </script>
 
 <template>
   <div class="modal">
     <div class="modal-content">
-      <h3>Vpis delovnega časa</h3>
-      <input type="date" v-model="workTime.date" />
-      <textarea v-model="workTime.description" placeholder="Opis aktivnosti"></textarea>
-      <input type="number" v-model="workTime.normalHours" placeholder="Navadne ure" />
-      <input type="number" v-model="workTime.overtime" placeholder="Nadure" />
-      <button @click="submitWorkLog">Shrani</button>
-      <button @click="emit('close')">Zapri</button>
+      <h3>Vpiši število opravljenih ur za zahtevek ID: {{ ticketId }}</h3>
+      <label>Trenutno število ur:</label>
+      <input v-model="numberOfHours" type="number" />
+
+      <label>Opis aktivnosti:</label>
+      <textarea v-model="description" type="text" ></textarea>
+
+      <p v-if="error" class="error">{{ error }}</p>
+
+      <button class="bt-save" @click="submitWorkLog()">Shrani</button>
+      <button class="bt-close" @click="$emit('close')">Prekliči</button>
     </div>
   </div>
 </template>
+
+<style scoped>
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.bt-save {
+  background-color: #4DD6AA;
+  color: white;
+  border: none;
+  margin-top: 10px;
+  padding: 10px;
+  cursor: pointer;
+}
+
+button, input, form, option, textarea { border-radius: 5px;}
+
+textarea {
+  width: 100%;
+  height: 100px;
+}
+
+.bt-close {
+  background-color: #F04E4E;
+  color: white;
+  border: none;
+  padding: 10px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 5px;
+  width: 400px;
+}
+</style>
