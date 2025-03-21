@@ -36,7 +36,7 @@ const ticket = ref({
   impact: '',
   urgency: '',
   type: '',
-  parent_ticket_id: 0,
+  parent_ticket_id: null,
   state: '',
   caller_id: 0,
   group_id: 0,

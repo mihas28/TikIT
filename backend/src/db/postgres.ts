@@ -565,8 +565,8 @@ export const createTicket = async (
     try {
         const result = await pool.query(
             `INSERT INTO ticket 
-            (title, description, impact, urgency, state, type, created_at, updated_at, accepted_at, caller_id, parent_ticket_id, group_id, contract_id) 
-            VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW(), $7, $8, $9, $10) 
+            (title, description, impact, urgency, state, type, created_at, updated_at, caller_id, parent_ticket_id, group_id, contract_id) 
+            VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), $7, $8, $9, $10) 
             RETURNING ticket_id`,
             [title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id]
         );
@@ -590,7 +590,8 @@ export const updateTicket = async (
     caller_id: number,
     parent_ticket_id: number | null,
     group_id: number,
-    contract_id: number
+    contract_id: number,
+    accepted_at: string | null
 ) => {
     try {
         const result = await pool.query(
@@ -605,10 +606,11 @@ export const updateTicket = async (
             parent_ticket_id = $8, 
             group_id = $9,
             contract_id = $10,
+            accepted_at = $11,
             updated_at = NOW()
-            WHERE ticket_id = $11 
+            WHERE ticket_id = $12 
             RETURNING *`,
-            [title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id, ticket_id]
+            [title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id, accepted_at, ticket_id]
         );
 
         return result.rows[0] || null;
@@ -762,5 +764,44 @@ export const getNameLastNamebyUserId = async (user_id: number) => {
     }
 };
 
+// **Funkcija za posodobitev ticketa v stanje resolved**
+export const resolveTicket = async (ticketId: number, close_code: string, close_notes: string) => {
+    const query = `
+      UPDATE ticket 
+      SET state = 'resolved', resolved_at = NOW(), close_code = $1, close_notes = $2 
+      WHERE ticket_id = $3;
+    `;
+    await pool.query(query, [close_code, close_notes, ticketId]);
+  };
+  
+// **Funkcija za posodobitev ticketa v stanje canceled**
+export const cancelTicket = async (ticketId: number) => {
+    const query = `
+      UPDATE ticket 
+      SET state = 'cancelled', resolved_at = NOW()
+      WHERE ticket_id = $1;
+    `;
+    await pool.query(query, [ticketId]);
+  };
+  
+// **Funkcija za ponovno odpriranje ticketa**
+export const reOpenTicket = async (ticketId: number) => {
+    const query = `
+      UPDATE ticket 
+      SET state = 'open', resolved_at = NULL
+      WHERE ticket_id = $1;
+    `;
+    await pool.query(query, [ticketId]);
+  };
+
+  // **Funkcija za nastavljanje ticketa na on hold**
+export const putOnHoldTicket = async (ticketId: number) => {
+    const query = `
+      UPDATE ticket 
+      SET state = 'awaiting info', resolved_at = NOW()
+      WHERE ticket_id = $1;
+    `;
+    await pool.query(query, [ticketId]);
+  };
 
 export default pool;

@@ -18,7 +18,7 @@ import { getCompany, verifyUser, registerUser, getAllCompanies,
   getUserById, updateUser, updatePasswordWithOld, updatePasswordWithoutOld, getAllGroups, getGroupById, createGroup, updateGroup, 
   getAllTickets, getTicketById, createTicket, updateTicket, getTimeWorkedByUserAndTicket, createTimeWorked, updateTimeWorked,
   getAllCompaniesEssential, getAllContractsEssential, getAllUsersEssential, getAllGroupsEssential, getAllTicketsEssential,
-  getTimeWorkedByTicket, updatePrimary, syncAdditionalResolvers, getNameLastNamebyUserId} from './db/postgres';
+  getTimeWorkedByTicket, updatePrimary, syncAdditionalResolvers, getNameLastNamebyUserId, resolveTicket, cancelTicket, reOpenTicket, putOnHoldTicket} from './db/postgres';
 import connectMongo, { getChatsByTicketId, createChat } from './db/mongo';
 import { authenticateJWT, generateAccessToken, generateRefreshToken, refreshToken, authorizeRoles } from './middleware/auth';
 import { check } from 'express-validator';
@@ -799,6 +799,30 @@ app.post('/tickets', authenticateJWT, async (req: Request, res: Response) => {
   }
 });
 
+// **Posodabljanje statusa ticketa**
+// @ts-ignore
+app.put('/tickets/close/:ticket_id', authenticateJWT, authorizeRoles('admin', 'operator'), async (req, res) => {
+    const ticket_id = parseInt(req.params.ticket_id, 10);
+    const { status, close_code, close_notes } = req.body;
+  
+    try {
+      if (status === 'resolved') {
+        await resolveTicket(ticket_id, close_code, close_notes);
+      } else if (status === 'cancelled') {
+        await cancelTicket(ticket_id);
+      } else if (status === 'open') {
+        await reOpenTicket(ticket_id);
+      } else if (status === 'awaiting info') {
+        await putOnHoldTicket(ticket_id);
+      }
+      res.status(200).json({ message: "Ticket status posodobljen." });
+    } catch (error) {
+      console.error("Napaka pri posodabljanju statusa zahtevka:", error);
+      res.status(500).json({ error: "Napaka pri posodobitvi stanja zahtevka" });
+    }
+  });
+  
+
 // **Posodobitev zahtevka na podlagi ticket_id**
 // @ts-ignore
 app.put('/tickets/:ticket_id', authenticateJWT, async (req: Request, res: Response) => {
@@ -808,13 +832,13 @@ app.put('/tickets/:ticket_id', authenticateJWT, async (req: Request, res: Respon
           return res.status(400).json({ error: 'Neveljaven ticket_id' });
       }
 
-      const { title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id } = req.body;
+      const { title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id, accepted_at } = req.body;
 
       if (!title || !description || !impact || !urgency || !state || !type || !caller_id || !group_id || !contract_id) {
           return res.status(400).json({ error: 'Manjkajoči podatki' });
       }
 
-      const updatedTicket = await updateTicket(ticket_id, title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id);
+      const updatedTicket = await updateTicket(ticket_id, title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id, accepted_at);
       if (!updatedTicket) {
           return res.status(404).json({ error: 'Zahtevek ni najden' });
       }
@@ -1072,8 +1096,6 @@ io.on('connection', (socket) => {
         try {
           const name = await getNameLastNamebyUserId(userId);
           const savedMessage = await createChat(ticket_id, message, isPrivate, name[0].name);
-
-          console.log('Poslano sporočilo:', savedMessage);
       
           io.to(`ticket_${ticket_id}`).emit('newMessage', savedMessage); // Pošlje samo enkrat
       

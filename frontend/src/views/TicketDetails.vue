@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
-import { fetchTicketDetails, updateTicket, addComment, fetchComments, uploadChatFile, fetchUsersCreate, fetchCompanyDataCreate, fetchContractsCreate, fetchGroupsCreate, assignTicketUpdate, fetchTicketDataCreate, assignTicket, assignTicketUpdateAdditional, getAllAssignees } from '@/api/api';
+import { fetchTicketDetails, updateTicket, addComment, fetchComments, updateTicketStatus, uploadChatFile, fetchUsersCreate, fetchCompanyDataCreate, fetchContractsCreate, fetchGroupsCreate, assignTicketUpdate, fetchTicketDataCreate, assignTicket, assignTicketUpdateAdditional, getAllAssignees } from '@/api/api';
 import { io } from 'socket.io-client';
 import WorkLogModal from '../components/ticket_components/WorkLogModal.vue';
 import { useAuthStore } from '../stores/authStore';
@@ -76,6 +76,10 @@ const selectedEngineer = ref<{ id: number; name: string } | null>(null);
 const selectedGroup = ref<{ id: number; name: string } | null>(null);
 const additionalResolvers = ref<{ id: number; name: string }[]>([]);
 const errorMessage = ref('');
+
+// **Ali so vnosna polja in gumbi omogočeni
+const isTicketEditable = ref(true);
+const isTicketEditableClosed = ref(true);
 
 // **Polja za iskanje**
 const companySearch = ref('');
@@ -204,6 +208,36 @@ const getPriority = () => {
     }
 };
 
+const showResolutionForm = ref(false);
+const resolution = ref({
+  close_code: '',
+  close_notes: '',
+  addToComments: true
+});
+
+const showAwaitingInfoForm = ref(false);
+const awaitingInfoReason = ref('');
+
+// **Funkcija za prikaz polja in skrolanje do njega**
+const toggleResolutionForm = () => {
+  showResolutionForm.value = !showResolutionForm.value;
+  if (showResolutionForm.value) {
+    nextTick(() => {
+      document.getElementById('resolution-section')?.scrollIntoView({ behavior: 'smooth' });
+    });
+  }
+};
+
+// **Funkcija za prikaz polja Awaiting info in skrolanje do njega**
+const toggleAwaitingInfoForm = () => {
+  showAwaitingInfoForm.value = !showAwaitingInfoForm.value;
+  if (showAwaitingInfoForm.value) {
+    nextTick(() => {
+      document.getElementById('resolution-section1')?.scrollIntoView({ behavior: 'smooth' });
+    });
+  }
+};
+
 const assignToMe = async () => {
   await getDataFunction();
   engineerSearch.value = users.value.find(u => u.id === parseInt(currentUserId.value, 10))?.name || '';
@@ -213,14 +247,114 @@ const assignToMe = async () => {
   ticket.value.primary[0].user_id = parseInt(currentUserId.value, 10);
 };
 
-const resolveTicket = () => {
-  //socket.emit("resolveTicket", { ticket_id: ticketId.value });
+// **Funkcija za spremenitev stanja - AwaitingInfo**
+const saveChangesAwaiting = async () => {
+  try {
+    if (awaitingInfoReason.value === '')
+    {
+      alert("Vnesi razlog za čakanje")
+      //showResolutionForm.value = !showResolutionForm.value;
+      return;
+    }
+    await updateTicketStatus(Number(ticketId.value), 'awaiting info');
+    ticket.value.ticket.state = 'awaiting info';
+
+    const text = "Zahtevek "+ ticketId.value +" je v stanju čakanja na odziv, s sporočilom:\n" + awaitingInfoReason.value;
+
+    if (resolution.value.addToComments) {
+      const commentData = {
+        ticket_id: ticketId.value,
+        message: { type: "text", content: text },
+        isPrivate: false
+      };
+      socket.emit("sendMessage", commentData);
+    }
+  } catch (error) {
+    console.error("Napaka pri zapiranju zahtevka:", error);
+  }
 };
 
-const cancelTicket = () => {
-  //socket.emit("cancelTicket", { ticket_id: ticketId.value });
+// **Funkcija za zaprtje zahtevka**
+const resolveTicket = async () => {
+  try {
+    if (resolution.value.close_code === '' || resolution.value.close_notes === '')
+    {
+      alert("Vnesi kodo razrešitve in opombe!")
+      //showResolutionForm.value = !showResolutionForm.value;
+      return;
+    }
+    await updateTicketStatus(Number(ticketId.value), 'resolved', resolution.value.close_code, resolution.value.close_notes);
+    ticket.value.ticket.state = 'resolved';
+    ticket.value.ticket.resolved_at = new Date().toISOString();
+
+    const text = "Zahtevek "+ ticketId.value +" je bil razrešen z kodo:\n"+ resolution.value.close_code + "\nin z opisom:\n" + resolution.value.close_notes;
+
+    if (resolution.value.addToComments) {
+      const commentData = {
+        ticket_id: ticketId.value,
+        message: { type: "text", content: text },
+        isPrivate: false
+      };
+      socket.emit("sendMessage", commentData);
+    }
+  } catch (error) {
+    console.error("Napaka pri zapiranju zahtevka:", error);
+  }
 };
 
+// **Funkcija za ponovno odprtje zahtevka**
+const reopenTicket = async () => {
+  try {
+    await updateTicketStatus(Number(ticketId.value), 'open');
+    ticket.value.ticket.state = 'open';
+    ticket.value.ticket.resolved_at = "";
+
+    const text = "Zahtevek "+ ticketId.value +" je ponovno odprt";
+
+    if (!isTicketEditableClosed.value)
+    {
+      isTicketEditable.value = true;
+      isTicketEditableClosed.value = true;
+    }
+
+    // Dodaj zapis v komunikacijo
+    const commentData = {
+      ticket_id: ticketId.value,
+      message: { type: "text", content: text },
+      isPrivate: false
+    };
+
+    showResolutionForm.value = false;
+
+    socket.emit("sendMessage", commentData);
+  } catch (error) {
+    console.error("Napaka pri odpiranju zahtevka:", error);
+  }
+};
+
+// **Funkcija za preklic zahtevka**
+const cancelTicket = async () => {
+  try {
+    if (confirm("Ali ste prepričani, da želite preklicati zahtevek ID: "+ ticketId.value +"?"))
+    {
+      await updateTicketStatus(Number(ticketId.value), 'cancelled');
+      ticket.value.ticket.state = 'cancelled';
+      // Onemogoči vsa vnosna polja in gumbe
+      isTicketEditable.value = false;
+
+      const text = "Zahtevek "+ ticketId.value +" je bil preklican!";
+      // Dodaj zapis v komunikacijo
+      const commentData = {
+        ticket_id: ticketId.value,
+        message: { type: "text", content: text },
+        isPrivate: false
+      };
+      socket.emit("sendMessage", commentData);
+    }
+  } catch (error) {
+    console.error("Napaka pri preklicu zahtevka:", error);
+  }
+};
 
 const formattedDate = ref('');
 
@@ -241,8 +375,16 @@ const loadTicket = async () => {
   try {
     isLoading.value = true;
     ticket.value = await fetchTicketDetails(ticketId.value);
+
+    if (ticket.value.ticket.state === 'cancelled')
+      isTicketEditable.value = false;
+    else if (ticket.value.ticket.state === 'closed')
+    {
+      isTicketEditable.value = false;
+      isTicketEditableClosed.value = false;
+    }
+      
     oldUserId = ticket.value.primary[0].user_id;
-    console.log(ticket.value.primary[0].user_id);
     companySearch.value = ticket.value.ticket.company_name;
     callerSearch.value = ticket.value.ticket.caller;
     selectedCaller.value = { id: ticket.value.ticket.caller_id, name: ticket.value.ticket.caller };
@@ -327,6 +469,7 @@ const saveChanges = async () => {
         });
       }
 
+      ticket.value.ticket.accepted_at = new Date().toISOString();
       ticket.value.ticket.state = "open";
     } else {
       // Počakaj na Vue posodobitev
@@ -550,33 +693,6 @@ const removeResolver = (user: any) => {
   additionalResolvers.value = additionalResolvers.value.filter(r => r.id !== user.id);
 };
 
-// **Shrani podatke**
-const saveData = async () => {
-  /*if (!selectedEngineer.value) {
-    errorMessage.value = "Reševalec je obvezno polje!";
-    return;
-  }
-
-  ticket.value.caller_id = selectedCaller.value?.id ?? 0;
-  ticket.value.group_id = selectedGroup.value?.id ?? 0;
-  ticket.value.contract_id = selectedContract.value?.id ?? 0;
-  ticket.value.state = 'open';
-
-  try {
-    const createdTicket = await createCustomTicket(ticket.value);
-    await assignTicket({user_id: selectedEngineer.value.id, ticket_id: createdTicket.ticket_id, primary: true})
-    
-    additionalResolvers.value.forEach(async user => {
-      await assignTicket({user_id: user.id, ticket_id: createdTicket.ticket_id, primary: false})
-    });
-
-    errorMessage.value = "Podatki uspešno shranjeni!";
-    router.push({ name: 'TicketDetails', params: { id: createdTicket.ticket_id } });
-  } catch (err) {
-    console.error('Napaka pri ustvarjanju zahtevka:', err);
-  } */
-};
-
 // **Funkcija za nalaganje uporabnikov**
 const loadUsers = async () => {
   try {
@@ -721,6 +837,10 @@ const handleFileSelect = (event: Event) => {
 };
 
 onMounted(async () => {
+  const regex1 = /^Zahtevek (\d+) je bil razrešen z kodo:\n(duplicate|cancelled|other|solved)\nin z opisom:\n(.+)$/;
+  const regex2 = /Zahtevek (\d+) je v stanju čakanja na odziv, s sporočilom:\n([\s\S]+)/;
+
+
   currentUserId.value = getUserIdFromJWT() || '';
 
   await loadTicket();
@@ -734,6 +854,10 @@ onMounted(async () => {
 
   // ** Poslušaj nova sporočila v realnem času**
   socket.on("newMessage", (message) => {
+    if ((ticket.value.ticket.state === "resolved" && !message.message.content.match(regex1)) || (ticket.value.ticket.state === "awaiting info" && !message.message.content.match(regex2)))
+    {
+      reopenTicket();
+    }
     comments.value.unshift(message);
   });
 
@@ -778,19 +902,43 @@ const getDataFunction = async () => {
     <div class="nav-ticket">
       <!-- Navigacija z gumbi -->
       <nav class="ticket-nav">
-        <button @click="saveChanges" class="btn-primary">Shrani</button>
-        <button @click="resolveTicket" class="btn-warning">Razreši zahtevek</button>
-        <button v-if="ticket.ticket.state !== 'cancelled' && ticket.ticket.state !== 'new'"
+        <button :disabled="!isTicketEditable" @click="saveChanges" class="btn-primary">Shrani</button>
+        <button 
+            v-if="!showResolutionForm && ticket.ticket.state === 'open'" 
+            :disabled="!isTicketEditable"
+            @click="toggleResolutionForm" 
+            class="btn-warning">
+            Razreši zahtevek
+        </button>
+        <button 
+            v-else-if="showResolutionForm && ticket.ticket.state === 'open'"
+            :disabled="!isTicketEditable"
+            @click="resolveTicket" 
+            class="btn-warning">
+            Razreši zahtevek
+        </button>
+        <button 
+          v-else-if="ticket.ticket.state === 'resolved' || ticket.ticket.state === 'closed' || ticket.ticket.state === 'awaiting info'"
+          :disabled="!isTicketEditable && isTicketEditableClosed"
+          @click="reopenTicket" 
+          class="btn-warning">
+          Odpri zahtevek
+        </button>
+
+        <button v-if="!showAwaitingInfoForm && ticket.ticket.state === 'open'" :disabled="!isTicketEditable" @click="toggleAwaitingInfoForm" class="btn-awaiting">Čakanje na odziv</button>
+        <button v-else-if="showAwaitingInfoForm && ticket.ticket.state === 'open'" :disabled="!isTicketEditable" @click="saveChangesAwaiting" class="btn-awaiting">Čakanje na odziv</button>
+
+        <button :disabled="!isTicketEditable" v-if="ticket.ticket.state !== 'cancelled' && ticket.ticket.state !== 'new'"
           @click="isWorkLogModalOpen = true"
           class="btn-secondary">
           Vpiši čas
         </button>
-        <button v-if="ticket.primary[0].user_id !== parseInt(currentUserId,10) && ticket.ticket.caller_id !== parseInt(currentUserId,10) && ticket.ticket.state !== 'cancelled'" 
+        <button :disabled="!isTicketEditable" v-if="ticket.primary[0].user_id !== parseInt(currentUserId,10) && ticket.ticket.caller_id !== parseInt(currentUserId,10) && ticket.ticket.state !== 'cancelled'" 
           @click="assignToMe" 
           class="btn-success">
           Dodeli name
         </button>
-        <button @click="cancelTicket" class="btn-danger">Prekliči zahtevek</button>
+        <button :disabled="!isTicketEditable" @click="cancelTicket" class="btn-danger">Prekliči zahtevek</button>
       </nav>
     </div>
 
@@ -831,7 +979,7 @@ const getDataFunction = async () => {
         <!-- tip -->
         <div class="form-group">
           <label for="type">Tip zahtevka</label>
-            <select id="type" v-model="ticket.ticket.type">
+            <select :disabled="!isTicketEditable" id="type" v-model="ticket.ticket.type">
             <option v-for="option in typeOptions" :key="option.value" :value="option.value">
               {{ option.label }}
             </option>
@@ -840,7 +988,7 @@ const getDataFunction = async () => {
         <!-- Impact -->
         <div class="form-group">
           <label for="impact">Vpliv</label>
-          <select id="impact" v-model="ticket.ticket.impact" @change="getPriority">
+          <select :disabled="!isTicketEditable" id="impact" v-model="ticket.ticket.impact" @change="getPriority">
             <option v-for="option in impactOptions" :key="option.value" :value="option.value">
               {{ option.label }}
             </option>
@@ -852,7 +1000,7 @@ const getDataFunction = async () => {
         <!-- Klicatelj -->
         <div class="form-group">
           <label for="caller">Klicatelj</label>
-            <input v-model="callerSearch" id="caller" @focus="showDropdowns.caller = true" @input="getDataFunction" required />
+            <input :disabled="!isTicketEditable" v-model="callerSearch" id="caller" @focus="showDropdowns.caller = true" @input="getDataFunction" required />
             <ul v-if="showDropdowns.caller">
               <li v-for="user in filteredUsers" :key="user.id" @click="selectCaller(user)">
                 {{ user.name }}
@@ -862,7 +1010,7 @@ const getDataFunction = async () => {
         <!-- Urgency -->
         <div class="form-group">
           <label for="urgency">Nujnost</label>
-          <select id="urgency" v-model="ticket.ticket.urgency" @change="getPriority">
+          <select :disabled="!isTicketEditable" id="urgency" v-model="ticket.ticket.urgency" @change="getPriority">
             <option v-for="option in urgencyOptions" :key="option.value" :value="option.value">
               {{ option.label }}
             </option>
@@ -874,7 +1022,7 @@ const getDataFunction = async () => {
         <!-- Podjetje -->
         <div class="form-group">
           <label for="company">Podjetje</label>
-            <input v-model="companySearch" id="company" @focus="showDropdowns.company = true" @input="getDataFunction" required />
+            <input :disabled="!isTicketEditable" v-model="companySearch" id="company" @focus="showDropdowns.company = true" @input="getDataFunction" required />
             <ul v-if="showDropdowns.company">
               <li v-for="company in filteredCompanies" :key="company.id" @click="selectCompany(company)">
                 {{ company.name }}
@@ -885,7 +1033,7 @@ const getDataFunction = async () => {
         <div class="form-group">
           <label for="group">Assigment group</label>
             <div class="dropdown-container">
-            <input id="group" v-model="groupSearch" @focus="showDropdowns.group = true" type="text" placeholder="Iskanje skupine" @input="getDataFunction" required />
+            <input :disabled="!isTicketEditable" id="group" v-model="groupSearch" @focus="showDropdowns.group = true" type="text" placeholder="Iskanje skupine" @input="getDataFunction" required />
             <ul v-if="showDropdowns.group">
               <li v-for="group in filteredGroups" :key="group.id" @click="selectGroup(group)">
                 {{ group.name }}
@@ -900,7 +1048,7 @@ const getDataFunction = async () => {
         <div class="form-group">
           <label for="parentTicket">Nadrejeni zahtevek</label>
           <div class="dropdown-container">         
-            <input type="text" id="parentTicket" v-model="parentTicketSearch" @focus="showDropdowns.ticket = true" @input="getDataFunction"  placeholder="Dodaj starševski zahtevek"/>
+            <input :disabled="!isTicketEditable" type="text" id="parentTicket" v-model="parentTicketSearch" @focus="showDropdowns.ticket = true" @input="getDataFunction"  placeholder="Dodaj starševski zahtevek"/>
               <ul v-if="showDropdowns.ticket">
                 <li v-for="ticket in filteredTickets" :key="ticket.id" @click="selectTicket(ticket)">
                   {{ ticket.id }} | {{ ticket.name }}
@@ -911,7 +1059,7 @@ const getDataFunction = async () => {
         <!-- Inženir -->
         <div class="form-group">
           <label for="engineer">Reševalec</label>
-          <input id="engineer" v-model="engineerSearch" @focus="showDropdowns.engineer = true" @input="getDataFunction" required/>
+          <input :disabled="!isTicketEditable" id="engineer" v-model="engineerSearch" @focus="showDropdowns.engineer = true" @input="getDataFunction" required/>
           <ul v-if="showDropdowns.engineer">
             <li v-for="user in filteredEngineers" :key="user.id" @click="selectEngineer(user)">
               {{ user.name }}
@@ -925,7 +1073,7 @@ const getDataFunction = async () => {
         <div class="form-group">
           <label for="contract">Pogodba</label>
           <div class="dropdown-container">
-            <input v-model="contractSearch" id="contract" @focus="showDropdowns.contract = true" type="text" placeholder="Iskanje pogodbe" @input="getDataFunction" required />
+            <input :disabled="!isTicketEditable" v-model="contractSearch" id="contract" @focus="showDropdowns.contract = true" type="text" placeholder="Iskanje pogodbe" @input="getDataFunction" required />
             <ul v-if="showDropdowns.contract">
               <li v-for="contract in filteredContracts" :key="contract.id" @click="selectContract(contract)">
                 {{ contract.name }} - {{ contract.status }} | {{ contract.description }}
@@ -936,7 +1084,7 @@ const getDataFunction = async () => {
         <div class="form-group">
           <label>Dodatni reševalci</label>
             <div class="dropdown-container">
-            <input v-model="resolverSearch" @focus="showDropdowns.additional = true" type="text" placeholder="Dodaj reševalca" @input="getDataFunction" />
+            <input :disabled="!isTicketEditable" v-model="resolverSearch" @focus="showDropdowns.additional = true" type="text" placeholder="Dodaj reševalca" @input="getDataFunction" />
             <ul v-if="showDropdowns.additional">
               <li v-for="user in filteredResolvers" :key="user.id" @click="addResolver(user)">
                 {{ user.name }}
@@ -946,7 +1094,7 @@ const getDataFunction = async () => {
           <div v-if="additionalResolvers.length">
             <span v-for="resolver in additionalResolvers" :key="resolver.id" class="resolver">
               {{ resolver.name }}
-              <i class="fa-regular fa-circle-xmark remove-icon" @click="removeResolver(resolver)"></i>
+              <i v-if="isTicketEditable" class="fa-regular fa-circle-xmark remove-icon" @click="removeResolver(resolver)"></i>
             </span>
           </div>
         </div>
@@ -955,43 +1103,73 @@ const getDataFunction = async () => {
       <!-- Naslov (čez celo širino) -->
       <div class="form-group full-width">
         <label for="title">Naslov zahtevka</label>
-        <input type="text" id="title" v-model="ticket.ticket.title" required />
+        <input :disabled="!isTicketEditable" type="text" id="title" v-model="ticket.ticket.title" required />
       </div>
 
       <!-- Opis (čez celo širino) -->
       <div class="form-group full-width">
         <label for="description">Opis</label>
-        <textarea id="description" v-model="ticket.ticket.description" required></textarea>
+        <textarea :disabled="!isTicketEditable" id="description" v-model="ticket.ticket.description" required></textarea>
       </div>
 
     </form>
 
     <br>
- 
+
+    <!-- Sekcija za zaprtje zahtevka -->
+    <div v-if="showResolutionForm" id="resolution-section" class="resolution-form">
+      <h3>Razrešitev</h3>
+
+      <label>Koda razrešitve *</label>
+      <select :disabled="!isTicketEditable" v-model="resolution.close_code">
+        <option value="solved">Rešeno</option>
+        <option value="duplicate">Podvojen</option>
+        <option value="cancelled">Preklicano</option>
+        <option value="other">Drugo</option>
+      </select>
+
+      <label>Opombe razrešitve *</label>
+      <textarea :disabled="!isTicketEditable" v-model="resolution.close_notes"></textarea>
+
+      <div class="resolution-checkbox">
+        <label for="addResolutionToComments">Dodaj opombe razrešitve v komentarje</label>
+        <input id="addResolutionToComments" type="checkbox" v-model="resolution.addToComments">
+      </div>
+      <br>
+    </div>
+
+     <!-- Sekcija za čakanje na odziv -->
+     <div v-if="showAwaitingInfoForm" id="resolution-section1" class="resolution-form">
+      <h3>Razlog za čakanje</h3>
+
+      <textarea :disabled="!isTicketEditable" v-model="awaitingInfoReason"></textarea>
+      <br><br>
+     </div>
+
     <!-- Sekcija za komunikacijo -->
     <div class="ticket-comments">
       <h3>Komunikacija</h3>
       
       <!-- Vnos polja za javna in zasebna sporočila -->
       <div class="comment-inputs">
-        <textarea v-model="newPublicComment" placeholder="Vnesi javni komentar..." class="input-field"></textarea>
+        <textarea :disabled="!isTicketEditable" v-model="newPublicComment" placeholder="Vnesi javni komentar..." class="input-field"></textarea>
         <div class="ticket-nav1">
-          <button @click="sendComment(true)" class="btn-send">Pošlji</button>
+          <button :disabled="!isTicketEditable" @click="sendComment(true)" class="btn-send">Pošlji</button>
         </div>
 
-        <textarea v-model="newPrivateComment" placeholder="Vnesi zasebni komentar..." class="input-field"></textarea>
+        <textarea :disabled="!isTicketEditable" v-model="newPrivateComment" placeholder="Vnesi zasebni komentar..." class="input-field"></textarea>
         <div class="ticket-nav1">
-          <button @click="sendComment(false)" class="btn-send">Pošlji</button>
+          <button :disabled="!isTicketEditable" @click="sendComment(false)" class="btn-send">Pošlji</button>
         </div>
       </div>
 
       <!-- Povleci in spusti za datoteke + možnost izbire datoteke -->
       <div class="file-upload">
-        <div class="file-drop-zone" @dragover.prevent @drop="handleFileDrop">
+        <div :disabled="!isTicketEditable" class="file-drop-zone" @dragover.prevent @drop="handleFileDrop">
           Povleci in spusti datoteko tukaj
         </div>
         <label class="file-label">
-          <input type="file" accept=".jpg, .jpeg, .png, .pdf" @change="handleFileSelect" hidden />
+          <input :disabled="!isTicketEditable" type="file" accept=".jpg, .jpeg, .png, .pdf" @change="handleFileSelect" hidden />
           Izberi datoteko
         </label>
       </div>
@@ -1274,6 +1452,15 @@ li:hover {
   border-radius: 5px;
 }
 
+.btn-awaiting {
+  background-color: #3A89CE;
+  color: white;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
 .comment-inputs {
   display: flex;
   flex-direction: column;
@@ -1354,6 +1541,17 @@ li:hover {
 
 .date {
   float: right;
+}
+
+.resolution-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Razmik med besedilom in checkboxom */
+}
+
+.resolution-checkbox input {
+  width: 16px;
+  height: 16px;
 }
 
 .comment-text {

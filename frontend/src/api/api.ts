@@ -595,3 +595,20 @@ export const saveWorkLog = async (ticketId: string, userId: string, updatedData:
     throw error;
   }
 };
+
+// **Funkcija za posodobitev statusa ticketa**
+export const updateTicketStatus = async (ticketId: number, status: string, close_code?: string, close_notes?: string) => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.put(`http://localhost:3000/tickets/close/${ticketId}`, { status, close_code, close_notes }, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Napaka pri posodabljanju statusa ticketa:`, error);
+    throw error;
+  }
+};
