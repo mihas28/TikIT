@@ -612,3 +612,69 @@ export const updateTicketStatus = async (ticketId: number, status: string, close
     throw error;
   }
 };
+
+///////////////////////
+
+// **Funkcija za pridobivanje podatka enega podjetja iz /company**
+export const fetchCompanyDataById = async (companyId: string) => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.get(`http://localhost:3000/company/${companyId}`, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Napaka pri pridobivanju podatkov iz /company/${companyId}:`, error);
+    throw error;
+  }
+};
+
+// **Funkcija za pridobivanje podatka enega podjetja iz /users**
+export const fetchUserDataById = async (callerId: string) => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.get(`http://localhost:3000/users/${callerId}`, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Napaka pri pridobivanju podatkov iz /users/${callerId}:`, error);
+    throw error;
+  }
+};
+
+// **Funkcija za pridobivanje podatka enega podjetja iz /contract**
+export const fetchContractDataById = async (contractId: string) => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.get(`http://localhost:3000/contract/${contractId}`, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Napaka pri pridobivanju podatkov iz /contract/${contractId}:`, error);
+    throw error;
+  }
+};
+
+// **Funkcija za pridobivanje podatka enega podjetja iz /groups**
+export const fetchGroupDataById = async (groupId: string) => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.get(`http://localhost:3000/groups/${groupId}`, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Napaka pri pridobivanju podatkov iz /groups/${groupId}:`, error);
+    throw error;
+  }
+};

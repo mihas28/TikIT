@@ -14,7 +14,8 @@ const route = useRoute();
         
         <!-- Glavni vsebinski del -->
         <div class="content flex-grow-1">
-            <router-view />
+            <!-- Spremennjeno 21.3 za parent ticket id -->
+            <router-view :key="Array.isArray($route.params.id) ? $route.params.id.join('-') : $route.params.id"></router-view>
         </div>
     </div>
 </template>

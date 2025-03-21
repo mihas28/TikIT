@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed, nextTick } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { fetchTicketDetails, updateTicket, addComment, fetchComments, updateTicketStatus, uploadChatFile, fetchUsersCreate, fetchCompanyDataCreate, fetchContractsCreate, fetchGroupsCreate, assignTicketUpdate, fetchTicketDataCreate, assignTicket, assignTicketUpdateAdditional, getAllAssignees } from '@/api/api';
 import { io } from 'socket.io-client';
 import WorkLogModal from '../components/ticket_components/WorkLogModal.vue';
+import DetailsModal from '../components/ticket_components/DetailsModal.vue';
 import { useAuthStore } from '../stores/authStore';
 import { jwtDecode } from "jwt-decode";
 import { formatRFC3339 } from 'date-fns';
+
+const router = useRouter();
 
 const route = useRoute();
 const ticketId = ref(Array.isArray(route.params.id) ? route.params.id[0] : route.params.id);
@@ -58,6 +61,10 @@ const getUserIdFromJWT = () => {
     return null;
   }
 };
+
+const selectedType = ref<string>("");
+const selectedId = ref<number>(0);
+const isDetailsModalOpen = ref(false);
 
 const isLoading = ref(false);
 const isWorkLogModalOpen = ref(false);
@@ -840,7 +847,6 @@ onMounted(async () => {
   const regex1 = /^Zahtevek (\d+) je bil razrešen z kodo:\n(duplicate|cancelled|other|solved)\nin z opisom:\n(.+)$/;
   const regex2 = /Zahtevek (\d+) je v stanju čakanja na odziv, s sporočilom:\n([\s\S]+)/;
 
-
   currentUserId.value = getUserIdFromJWT() || '';
 
   await loadTicket();
@@ -890,6 +896,21 @@ const getDataFunction = async () => {
     getData = !getData;
   }
 };
+
+// **Funkcija za prikaz podrobnosti**
+const getDetails = (type: string, id: number) => {
+  selectedType.value = type;
+  selectedId.value = id;
+  isDetailsModalOpen.value = true;
+};
+
+// **Funkcija za preusmerjanje na nadrejeni zahtevek
+const redirectToParentTicket = () => {
+  if (ticket.value.ticket.parent_ticket_id) {
+    router.push({ name: 'TicketDetails', params: { id: ticket.value.ticket.parent_ticket_id } });
+  }
+};
+
 </script>
 
 <template>
@@ -1000,7 +1021,7 @@ const getDataFunction = async () => {
         <!-- Klicatelj -->
         <div class="form-group">
           <label for="caller">Klicatelj</label>
-            <input :disabled="!isTicketEditable" v-model="callerSearch" id="caller" @focus="showDropdowns.caller = true" @input="getDataFunction" required />
+            <input :disabled="!isTicketEditable" v-model="callerSearch" id="caller" @focus="showDropdowns.caller = true" @input="getDataFunction" @dblclick="getDetails('caller', ticket.ticket.caller_id)" required />
             <ul v-if="showDropdowns.caller">
               <li v-for="user in filteredUsers" :key="user.id" @click="selectCaller(user)">
                 {{ user.name }}
@@ -1022,7 +1043,7 @@ const getDataFunction = async () => {
         <!-- Podjetje -->
         <div class="form-group">
           <label for="company">Podjetje</label>
-            <input :disabled="!isTicketEditable" v-model="companySearch" id="company" @focus="showDropdowns.company = true" @input="getDataFunction" required />
+            <input :disabled="!isTicketEditable" v-model="companySearch" id="company" @focus="showDropdowns.company = true" @input="getDataFunction" @dblclick="getDetails('company', ticket.ticket.company_id)" required />
             <ul v-if="showDropdowns.company">
               <li v-for="company in filteredCompanies" :key="company.id" @click="selectCompany(company)">
                 {{ company.name }}
@@ -1033,7 +1054,7 @@ const getDataFunction = async () => {
         <div class="form-group">
           <label for="group">Assigment group</label>
             <div class="dropdown-container">
-            <input :disabled="!isTicketEditable" id="group" v-model="groupSearch" @focus="showDropdowns.group = true" type="text" placeholder="Iskanje skupine" @input="getDataFunction" required />
+            <input :disabled="!isTicketEditable" id="group" v-model="groupSearch" @focus="showDropdowns.group = true" type="text" placeholder="Iskanje skupine" @input="getDataFunction" @dblclick="getDetails('group', ticket.ticket.group_id)" required />
             <ul v-if="showDropdowns.group">
               <li v-for="group in filteredGroups" :key="group.id" @click="selectGroup(group)">
                 {{ group.name }}
@@ -1048,7 +1069,7 @@ const getDataFunction = async () => {
         <div class="form-group">
           <label for="parentTicket">Nadrejeni zahtevek</label>
           <div class="dropdown-container">         
-            <input :disabled="!isTicketEditable" type="text" id="parentTicket" v-model="parentTicketSearch" @focus="showDropdowns.ticket = true" @input="getDataFunction"  placeholder="Dodaj starševski zahtevek"/>
+            <input :disabled="!isTicketEditable" type="text" id="parentTicket" v-model="parentTicketSearch" @focus="showDropdowns.ticket = true" @input="getDataFunction" @dblclick="redirectToParentTicket" placeholder="Dodaj starševski zahtevek"/>
               <ul v-if="showDropdowns.ticket">
                 <li v-for="ticket in filteredTickets" :key="ticket.id" @click="selectTicket(ticket)">
                   {{ ticket.id }} | {{ ticket.name }}
@@ -1059,7 +1080,7 @@ const getDataFunction = async () => {
         <!-- Inženir -->
         <div class="form-group">
           <label for="engineer">Reševalec</label>
-          <input :disabled="!isTicketEditable" id="engineer" v-model="engineerSearch" @focus="showDropdowns.engineer = true" @input="getDataFunction" required/>
+          <input :disabled="!isTicketEditable" id="engineer" v-model="engineerSearch" @focus="showDropdowns.engineer = true" @input="getDataFunction" @dblclick="getDetails('assignee', ticket.primary[0].user_id)" required/>
           <ul v-if="showDropdowns.engineer">
             <li v-for="user in filteredEngineers" :key="user.id" @click="selectEngineer(user)">
               {{ user.name }}
@@ -1073,7 +1094,7 @@ const getDataFunction = async () => {
         <div class="form-group">
           <label for="contract">Pogodba</label>
           <div class="dropdown-container">
-            <input :disabled="!isTicketEditable" v-model="contractSearch" id="contract" @focus="showDropdowns.contract = true" type="text" placeholder="Iskanje pogodbe" @input="getDataFunction" required />
+            <input :disabled="!isTicketEditable" v-model="contractSearch" id="contract" @focus="showDropdowns.contract = true" type="text" placeholder="Iskanje pogodbe" @input="getDataFunction" @dblclick="getDetails('contract', ticket.ticket.contract_id)" required />
             <ul v-if="showDropdowns.contract">
               <li v-for="contract in filteredContracts" :key="contract.id" @click="selectContract(contract)">
                 {{ contract.name }} - {{ contract.status }} | {{ contract.description }}
@@ -1092,7 +1113,7 @@ const getDataFunction = async () => {
             </ul>
           </div>
           <div v-if="additionalResolvers.length">
-            <span v-for="resolver in additionalResolvers" :key="resolver.id" class="resolver">
+            <span @dblclick="getDetails('additional', resolver.id)" v-for="resolver in additionalResolvers" :key="resolver.id" class="resolver">
               {{ resolver.name }}
               <i v-if="isTicketEditable" class="fa-regular fa-circle-xmark remove-icon" @click="removeResolver(resolver)"></i>
             </span>
@@ -1216,7 +1237,9 @@ const getDataFunction = async () => {
               @close="isWorkLogModalOpen = false"
               :ticketId="ticketId.toString()"
               :userId="currentUserId.toString()" />
-              
+
+    <!-- Modal za prikaz podrobnosti -->
+    <DetailsModal v-if="isDetailsModalOpen" :type="selectedType" :id="selectedId.toString()" @close="isDetailsModalOpen = false" />        
 
   </div>
 </template>
