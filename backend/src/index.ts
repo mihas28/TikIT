@@ -18,7 +18,8 @@ import { getCompany, verifyUser, registerUser, getAllCompanies,
   getUserById, updateUser, updatePasswordWithOld, updatePasswordWithoutOld, getAllGroups, getGroupById, createGroup, updateGroup, 
   getAllTickets, getTicketById, createTicket, updateTicket, getTimeWorkedByUserAndTicket, createTimeWorked, updateTimeWorked,
   getAllCompaniesEssential, getAllContractsEssential, getAllUsersEssential, getAllGroupsEssential, getAllTicketsEssential,
-  getTimeWorkedByTicket, updatePrimary, syncAdditionalResolvers, getNameLastNamebyUserId, resolveTicket, cancelTicket, reOpenTicket, putOnHoldTicket} from './db/postgres';
+  getTimeWorkedByTicket, updatePrimary, syncAdditionalResolvers, getNameLastNamebyUserId, resolveTicket, cancelTicket,
+  updateSlaReason, reOpenTicket, putOnHoldTicket} from './db/postgres';
 import connectMongo, { getChatsByTicketId, createChat } from './db/mongo';
 import { authenticateJWT, generateAccessToken, generateRefreshToken, refreshToken, authorizeRoles } from './middleware/auth';
 import { check } from 'express-validator';
@@ -997,6 +998,29 @@ app.post("/chat/upload", upload.single("file"), authenticateJWT, async (req: Req
       res.status(500).json({ error: "Napaka pri shranjevanju datoteke" });
     }
   });
+
+  // **Posodobi razlog za SLA breach (accept SLA)**
+  // @ts-ignore
+app.put('/ticket/:id/sla-accept-breach', authenticateJWT, authorizeRoles('admin', 'operator'), async (req, res) => {
+    const { id } = req.params
+    const { reason } = req.body
+    const { accept_sla } = req.body;
+
+    if (!id || !reason) {
+        return res.status(400).json({ error: "Manjkajo podatki" });
+    }
+  
+    try {
+        const result = await updateSlaReason(id, reason, accept_sla);
+        res.status(200).json(result);
+    } catch (error) {
+      console.error('Napaka pri posodabljanju accept_sla_breach:', error)
+      res.sendStatus(500)
+    }
+  })
+  
+
+  /////////////////////////////////////
   
 const connectedUsers: { [key: string]: string[] } = {}; // { userId: [ticket_id1, ticket_id2] }
 

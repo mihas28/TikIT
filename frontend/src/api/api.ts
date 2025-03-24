@@ -678,3 +678,23 @@ export const fetchGroupDataById = async (groupId: string) => {
     throw error;
   }
 };
+
+// **Posodobi accept_sla_breach za zahtevek**
+export const submitAcceptSlaBreach = async (ticketId: number, reason: string, accept_sla: boolean) => {
+  try {
+    const authStore = useAuthStore()
+    const response = await axios.put(`http://localhost:3000/ticket/${ticketId}/sla-accept-breach`, 
+      { reason, accept_sla },
+      {
+        headers: {
+          Authorization: `Bearer ${authStore.accessToken}`,
+        },
+      }
+    )
+    return response.data;
+  } catch (error) {
+    console.error(`Napaka pri posodobitvi SLA breach za ticket ${ticketId}:`, error)
+    throw error
+  }
+}
+

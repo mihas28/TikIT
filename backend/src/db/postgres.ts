@@ -519,7 +519,7 @@ export const updateGroup = async (group_id: number, group_name: string, descript
 // **Funkcija za pridobitev vseh zahtevkov**
 export const getAllTickets = async () => {
     try {
-        const result = await pool.query('SELECT t.ticket_id, t.title, CASE WHEN t.impact = 1 AND t.urgency = 1 THEN 1 WHEN t.impact = 2 AND t.urgency = 1 THEN 2 WHEN t.impact = 3 AND t.urgency = 1 THEN 3 WHEN t.impact = 1 AND t.urgency = 2 THEN 2 WHEN t.impact = 1 AND t.urgency = 3 THEN 3 WHEN t.impact = 2 AND t.urgency = 2 THEN 3 WHEN t.impact = 3 AND t.urgency = 2 THEN 4 WHEN t.impact = 2 AND t.urgency = 3 THEN 4 WHEN t.impact = 3 AND t.urgency = 3 THEN 4 END AS priority, t.state, t.type, t.created_at, CONCAT(caller.first_name, \' \', caller.last_name) AS caller, CONCAT(assigned.first_name, \' \', assigned.last_name) AS assigned_to, g.group_name AS assignment_group, comp.company_name FROM ticket t JOIN users caller ON t.caller_id = caller.user_id JOIN time_worked time ON time.ticket_id = t.ticket_id JOIN users assigned ON time.user_id = assigned.user_id JOIN assigment_group g ON assigned.group_id = g.group_id JOIN company comp ON caller.company_id = comp.company_id WHERE time.primary_resolver = true;');
+        const result = await pool.query('SELECT t.ticket_id, t.title, CASE WHEN t.impact = 1 AND t.urgency = 1 THEN 1 WHEN t.impact = 2 AND t.urgency = 1 THEN 2 WHEN t.impact = 3 AND t.urgency = 1 THEN 3 WHEN t.impact = 1 AND t.urgency = 2 THEN 2 WHEN t.impact = 1 AND t.urgency = 3 THEN 3 WHEN t.impact = 2 AND t.urgency = 2 THEN 3 WHEN t.impact = 3 AND t.urgency = 2 THEN 4 WHEN t.impact = 2 AND t.urgency = 3 THEN 4 WHEN t.impact = 3 AND t.urgency = 3 THEN 4 END AS priority, t.state, t.type, t.created_at, CONCAT(caller.first_name, \' \', caller.last_name) AS caller, COALESCE(assigned.first_name || \' \' || assigned.last_name, \'(prazno)\') AS assigned_to, COALESCE(g.group_name, \'(prazno)\') AS assignment_group, comp.company_name FROM ticket t LEFT JOIN time_worked time ON time.ticket_id = t.ticket_id AND time.primary_resolver = true LEFT JOIN users assigned ON time.user_id = assigned.user_id LEFT JOIN assigment_group g ON assigned.group_id = g.group_id JOIN users caller ON t.caller_id = caller.user_id JOIN company comp ON caller.company_id = comp.company_id;');
         return result.rows;
     } catch (error) {
         console.error('Napaka pri pridobivanju zahtevkov:', error);
@@ -802,6 +802,26 @@ export const putOnHoldTicket = async (ticketId: number) => {
       WHERE ticket_id = $1;
     `;
     await pool.query(query, [ticketId]);
+  };
+
+    // **Funkcija za za posodabljanje sla reasona**
+export const updateSlaReason = async (ticketId: string, reason: string, accept_sla: boolean) => {
+    if (accept_sla)
+    {
+        const query = `
+            UPDATE ticket SET accept_sla_breach = $1, updated_at = NOW()
+            WHERE ticket_id = $2
+        `;
+        await pool.query(query, [reason, ticketId]);
+    }
+    else
+    {
+        const query = `
+            UPDATE ticket SET sla_breach = $1, updated_at = NOW()
+            WHERE ticket_id = $2
+        `;
+        await pool.query(query, [reason, ticketId]);
+    }
   };
 
 export default pool;

@@ -1,13 +1,19 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { fetchTicketDetails, updateTicket, addComment, fetchComments, updateTicketStatus, uploadChatFile, fetchUsersCreate, fetchCompanyDataCreate, fetchContractsCreate, fetchGroupsCreate, assignTicketUpdate, fetchTicketDataCreate, assignTicket, assignTicketUpdateAdditional, getAllAssignees } from '@/api/api';
+import { fetchTicketDetails, updateTicket, addComment, fetchComments, updateTicketStatus, uploadChatFile, fetchUsersCreate, fetchCompanyDataCreate, fetchContractsCreate, fetchGroupsCreate, assignTicketUpdate, fetchTicketDataCreate, assignTicket, assignTicketUpdateAdditional, getAllAssignees, submitAcceptSlaBreach } from '@/api/api';
 import { io } from 'socket.io-client';
 import WorkLogModal from '../components/ticket_components/WorkLogModal.vue';
 import DetailsModal from '../components/ticket_components/DetailsModal.vue';
+import SlaBreachModal from '../components/ticket_components/SlaBreachModal.vue'
+
 import { useAuthStore } from '../stores/authStore';
 import { jwtDecode } from "jwt-decode";
 import { formatRFC3339 } from 'date-fns';
+
+import dayjs from 'dayjs'
+import duration from 'dayjs/plugin/duration'
+dayjs.extend(duration)
 
 const router = useRouter();
 
@@ -187,6 +193,32 @@ const typeOptions = [
   { value: 'incident', label: 'Incident' },
   { value: 'service request', label: 'Request' }
 ];
+
+const slaAccepted = ref(true);
+const acceptSlaRemaining = ref<number | null>(null);
+const showSlaBreachModal = ref(false);
+
+// **Funkcija za izračun preostalega časa**
+const calculateAcceptSla = () => {
+  if (ticket.value.ticket.type !== 'incident' || ticket.value.ticket.state !== 'new') return
+
+  const priority = ticket.value.ticket.priority; // pričakujemo 'P1', 'P2', ...
+  const created = dayjs(ticket.value.ticket.created_at);
+  const now = dayjs();
+
+  const hoursMap: Record<string, number> = {
+    P1: 1, P2: 2, P3: 3, P4: 4
+  }
+
+  const deadline = created.add(hoursMap[priority.slice(0,2)] || 4, 'hour')
+  const diffMs = deadline.diff(now)
+
+  acceptSlaRemaining.value = diffMs > 0 ? diffMs : 0;
+
+  if (diffMs <= 0 && !slaAccepted.value) {
+    showSlaBreachModal.value = true
+  }
+}
 
 const getPriority = () => {
     let impact: number = ticket.value.ticket.impact;
@@ -391,7 +423,13 @@ const loadTicket = async () => {
       isTicketEditableClosed.value = false;
     }
       
-    oldUserId = ticket.value.primary[0].user_id;
+    if (ticket.value.primary[0] !== undefined)
+    {
+      oldUserId = ticket.value.primary[0].user_id;
+    }
+      
+    slaAccepted.value = ticket.value.ticket.accept_sla_breach !== null;//(ticket.value.ticket.accept_sla_breach !== 'k');// && (ticket.value.ticket.accept_sla_breach !== null);
+
     companySearch.value = ticket.value.ticket.company_name;
     callerSearch.value = ticket.value.ticket.caller;
     selectedCaller.value = { id: ticket.value.ticket.caller_id, name: ticket.value.ticket.caller };
@@ -402,7 +440,8 @@ const loadTicket = async () => {
     selectedCompany.value = { id: ticket.value.ticket.company_id, name: ticket.value.ticket.company_name };
     selectedCaller.value = { id: ticket.value.ticket.caller_id, name: ticket.value.ticket.caller };
     selectedGroup.value = { id: ticket.value.ticket.group_id, name: ticket.value.ticket.assignment_group };
-    selectedEngineer.value = { id: ticket.value.primary[0].user_id, name: ticket.value.primary[0].resolver };
+    if (ticket.value.primary[0] !== undefined)
+      selectedEngineer.value = { id: ticket.value.primary[0].user_id, name: ticket.value.primary[0].resolver };
     /*additionalResolvers.value = ticket.value.other.map((resolver: { user_id: number; resolver: string }) => ({
       id: resolver.user_id,
       name: resolver.resolver,
@@ -455,29 +494,41 @@ const saveChanges = async () => {
     // Preveri, ali imamo izbranega inženirja
     if (!selectedEngineer.value) {
       selectedEngineer.value = {
-        id: ticket.value.primary?.[0]?.user_id ?? 0,
+        id: ticket.value.primary?.[0]?.user_id ?? -1,
         name: ticket.value.primary?.[0]?.resolver ?? "",
       };
     }
 
     // Če je ticket v stanju "new", ga premaknemo v "open" in dodelimo uporabnike
     if (ticket.value.ticket.state === "new") {
-      await assignTicket({
-        user_id: selectedEngineer.value.id,
-        ticket_id: ticket.value.ticket.ticket_id,
-        primary: true,
-      });
+      if (selectedEngineer.value.id !== -1)
+      {
+        await assignTicket({
+          user_id: selectedEngineer.value.id,
+          ticket_id: ticket.value.ticket.ticket_id,
+          primary: true,
+        });
 
       for (const user of additionalResolvers.value) {
-        await assignTicket({
-          user_id: user.id,
-          ticket_id: ticket.value.ticket.ticket_id,
-          primary: false,
-        });
+          await assignTicket({
+            user_id: user.id,
+            ticket_id: ticket.value.ticket.ticket_id,
+            primary: false,
+          });
+        }
       }
-
+      
       ticket.value.ticket.accepted_at = new Date().toISOString();
-      ticket.value.ticket.state = "open";
+
+      const text = "Zahtevek "+ ticketId.value +" je bil sprejet v izvedbo";
+      // Dodaj zapis v komunikacijo
+      const commentData = {
+        ticket_id: ticketId.value,
+        message: { type: "text", content: text },
+        isPrivate: false
+      };
+      socket.emit("sendMessage", commentData);
+
     } else {
       // Počakaj na Vue posodobitev
       await nextTick();
@@ -489,7 +540,8 @@ const saveChanges = async () => {
       }
 
       // Preveri, ali `user_id` obstaja in če je potreben update
-      if (oldUserId !== selectedEngineer.value.id) {
+      if (ticket.value.ticket.state !== "new" && oldUserId !== selectedEngineer.value.id) {
+        
         await assignTicketUpdate({
           new_user_id: selectedEngineer.value.id,
           old_user_id: oldUserId,
@@ -530,11 +582,29 @@ const saveChanges = async () => {
       }
     }
 
+    // Nastavi na stanje open, če je na stanju new
+    if (ticket.value.ticket.state === "new")
+      ticket.value.ticket.state = "open";
+
     // Shrani spremembe v bazo
     await updateTicket(String(ticketId.value), ticket.value.ticket);
 
-    //POMEMBNO - DODANI DEL ZA POSODOBITEV REŠEVALCA    
-    ticket.value.primary[0].user_id = selectedEngineer.value.id;
+    //POMEMBNO - DODANI DEL ZA POSODOBITEV REŠEVALCA 
+    if (ticket.value.primary[0] === undefined)
+    ticket.value.primary.push({
+      created_at: '',
+      description: '',
+      primary_resolver: selectedEngineer.value.name,
+      resolver: '',
+      ticket_id: 0,
+      time_worked: '',
+      updated_at: '',
+      user_id: selectedEngineer.value.id,
+    })
+    else
+    {
+      ticket.value.primary[0].user_id = selectedEngineer.value.id;
+    }
     
     alert("Spremembe shranjene!");
   } catch (error) {
@@ -843,6 +913,35 @@ const handleFileSelect = (event: Event) => {
   }
 };
 
+// **Pošlji razlog v backend in shrani v chat**
+const submitSlaBreachReason = async (reason: string) => {
+  if (!reason.trim()) return
+  try {
+    // Pošlji razlog za accept SLA breach
+    await submitAcceptSlaBreach(parseInt(ticketId.value,10), reason, true);
+
+    let messageData: any = {
+      ticket_id: ticketId.value,
+      isPrivate: false,
+    };
+
+    messageData.message = {
+      type: "text",
+      content: `Razlog za prekoračen SLA za sprejetje: ${reason}`,
+    };
+
+    socket.emit("sendMessage", messageData);
+
+    // Posodobi lokalno stanje
+    ticket.value.ticket.accept_sla_breach = reason;
+    slaAccepted.value = true;
+    showSlaBreachModal.value = false;
+  } catch (err) {
+    console.error('Napaka pri shranjevanju SLA breach razloga:', err)
+  }
+}
+
+
 onMounted(async () => {
   const regex1 = /^Zahtevek (\d+) je bil razrešen z kodo:\n(duplicate|cancelled|other|solved)\nin z opisom:\n(.+)$/;
   const regex2 = /Zahtevek (\d+) je v stanju čakanja na odziv, s sporočilom:\n([\s\S]+)/;
@@ -850,6 +949,10 @@ onMounted(async () => {
   currentUserId.value = getUserIdFromJWT() || '';
 
   await loadTicket();
+  calculateAcceptSla()
+  setInterval(() => {
+    calculateAcceptSla()
+  }, 1000)
 
   socket.emit("joinTicket", ticketId.value); // Pridruži se sobi WebSocket-a
 
@@ -923,7 +1026,7 @@ const redirectToParentTicket = () => {
     <div class="nav-ticket">
       <!-- Navigacija z gumbi -->
       <nav class="ticket-nav">
-        <button :disabled="!isTicketEditable" @click="saveChanges" class="btn-primary">Shrani</button>
+        <button :disabled="!isTicketEditable || ticket.ticket.state === 'new'" @click="saveChanges" class="btn-primary">Shrani</button>
         <button 
             v-if="!showResolutionForm && ticket.ticket.state === 'open'" 
             :disabled="!isTicketEditable"
@@ -954,7 +1057,7 @@ const redirectToParentTicket = () => {
           class="btn-secondary">
           Vpiši čas
         </button>
-        <button :disabled="!isTicketEditable" v-if="ticket.primary[0].user_id !== parseInt(currentUserId,10) && ticket.ticket.caller_id !== parseInt(currentUserId,10) && ticket.ticket.state !== 'cancelled'" 
+        <button :disabled="!isTicketEditable" v-if="((ticket.primary[0] === undefined && ticket.ticket.caller_id !== parseInt(currentUserId,10)) || (ticket.primary[0].user_id !== parseInt(currentUserId,10) && ticket.ticket.caller_id !== parseInt(currentUserId,10))) && ticket.ticket.state !== 'cancelled'" 
           @click="assignToMe" 
           class="btn-success">
           Dodeli name
@@ -964,9 +1067,18 @@ const redirectToParentTicket = () => {
     </div>
 
     <!-- SLA indikator -->
-    <div class="sla-indicator" v-if="ticket.ticket.accept_sla_breach">
-      {{ ticket.ticket.accept_sla_breach }}
+    <div v-if="ticket.ticket.type === 'incident' && ticket.ticket.state === 'new' && !slaAccepted" 
+        class="p-2 text-dark mb-2 rounded" 
+        :style="{ backgroundColor: acceptSlaRemaining !== null && acceptSlaRemaining > 0 ? '#BCF180' : '#f8d7da' }">
+      SLA za sprejem: 
+      <span v-if="acceptSlaRemaining !== null && acceptSlaRemaining > 0">
+        {{ dayjs.duration(acceptSlaRemaining).format('HH:mm:ss') }}
+      </span>
+      <span v-else>
+        SLA za sprejem je bil prekoračen!
+      </span>
     </div>
+
 
     <form class="ticket-form">
       <div class="form-row">
@@ -1133,6 +1245,12 @@ const redirectToParentTicket = () => {
         <textarea :disabled="!isTicketEditable" id="description" v-model="ticket.ticket.description" required></textarea>
       </div>
 
+      <!-- Razslog za Accept SLA breach -->
+      <div v-if="ticket.ticket.accept_sla_breach !== null" class="form-group full-width">
+        <label>Razlog za prekoračitev spremnega SLA</label>
+        <textarea disabled v-model="ticket.ticket.accept_sla_breach"></textarea>
+      </div>
+
     </form>
 
     <br>
@@ -1240,6 +1358,13 @@ const redirectToParentTicket = () => {
 
     <!-- Modal za prikaz podrobnosti -->
     <DetailsModal v-if="isDetailsModalOpen" :type="selectedType" :id="selectedId.toString()" @close="isDetailsModalOpen = false" />        
+
+    <!-- Modal za SLA accept breach -->
+    <SlaBreachModal
+      v-if="ticket.ticket.type === 'incident' && ticket.ticket.state === 'new' && !slaAccepted"
+      v-model="showSlaBreachModal"
+      @reason-submitted="submitSlaBreachReason"
+    />
 
   </div>
 </template>
