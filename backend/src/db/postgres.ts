@@ -538,6 +538,34 @@ export const getAllTicketsEssential = async () => {
     }
 };
 
+// **Funkcija za pridobitev vseh zahtevkov, katerih je klicatelj user_id**
+export const getTicketEssential = async (user_id: number) => {
+    try {
+        const result = await pool.query(
+            'SELECT t.ticket_id, t.title, CASE WHEN t.impact = 1 AND t.urgency = 1 THEN 1 WHEN t.impact = 2 AND t.urgency = 1 THEN 2 WHEN t.impact = 3 AND t.urgency = 1 THEN 3 WHEN t.impact = 1 AND t.urgency = 2 THEN 2 WHEN t.impact = 1 AND t.urgency = 3 THEN 3 WHEN t.impact = 2 AND t.urgency = 2 THEN 3 WHEN t.impact = 3 AND t.urgency = 2 THEN 4 WHEN t.impact = 2 AND t.urgency = 3 THEN 4 WHEN t.impact = 3 AND t.urgency = 3 THEN 4 END AS priority, t.created_at, t.type, t.state FROM ticket t WHERE t.caller_id = $1',
+            [user_id]
+        );
+        return result.rows;
+    } catch (error) {
+        console.error('Napaka pri pridobivanju zahtevkov:', error);
+        throw error;
+    }
+};
+
+// **Funkcija za pridobitev določenega zahtevka, katerih je klicatelj user_id**
+export const getIdTicketEssential = async (user_id: number, ticket_id: number) => {
+    try {
+        const result = await pool.query(
+            'SELECT t.ticket_id, t.title, t.description, CASE WHEN t.impact = 1 AND t.urgency = 1 THEN 1 WHEN t.impact = 2 AND t.urgency = 1 THEN 2 WHEN t.impact = 3 AND t.urgency = 1 THEN 3 WHEN t.impact = 1 AND t.urgency = 2 THEN 2 WHEN t.impact = 1 AND t.urgency = 3 THEN 3 WHEN t.impact = 2 AND t.urgency = 2 THEN 3 WHEN t.impact = 3 AND t.urgency = 2 THEN 4 WHEN t.impact = 2 AND t.urgency = 3 THEN 4 WHEN t.impact = 3 AND t.urgency = 3 THEN 4 END AS priority, t.created_at, t.updated_at, t.resolved_at, t.type, t.state, c.company_name, CONCAT(u.first_name, \' \', u.last_name) AS caller, COALESCE(ur.first_name || \' \' || ur.last_name, \'(prazno)\') AS primary_resolver FROM ticket t LEFT JOIN users u ON t.caller_id = u.user_id LEFT JOIN company c ON u.company_id = c.company_id LEFT JOIN time_worked tw ON tw.ticket_id = t.ticket_id AND tw.primary_resolver = true LEFT JOIN users ur ON tw.user_id = ur.user_id WHERE t.caller_id = $1 AND t.ticket_id = $2',
+            [user_id, ticket_id]
+        );
+        return result.rows;
+    } catch (error) {
+        console.error('Napaka pri pridobivanju zahtevkov:', error);
+        throw error;
+    }
+};
+
 // **Funkcija za pridobitev zahtevka na podlagi ticket_id**
 export const getTicketById = async (ticket_id: number) => {
     try {
@@ -766,62 +794,101 @@ export const getNameLastNamebyUserId = async (user_id: number) => {
 
 // **Funkcija za posodobitev ticketa v stanje resolved**
 export const resolveTicket = async (ticketId: number, close_code: string, close_notes: string) => {
-    const query = `
-      UPDATE ticket 
-      SET state = 'resolved', resolved_at = NOW(), close_code = $1, close_notes = $2 
-      WHERE ticket_id = $3;
-    `;
-    await pool.query(query, [close_code, close_notes, ticketId]);
+    try {
+        const query = `
+        UPDATE ticket 
+        SET state = 'resolved', resolved_at = NOW(), close_code = $1, close_notes = $2 
+        WHERE ticket_id = $3;
+        `;
+        await pool.query(query, [close_code, close_notes, ticketId]);
+    } catch (error) {
+        console.error(`Napaka pri posodabljanju ticketa`, error);
+        throw error;
+    } 
   };
   
 // **Funkcija za posodobitev ticketa v stanje canceled**
 export const cancelTicket = async (ticketId: number) => {
-    const query = `
-      UPDATE ticket 
-      SET state = 'cancelled', resolved_at = NOW()
-      WHERE ticket_id = $1;
-    `;
-    await pool.query(query, [ticketId]);
+    try {
+        const query = `
+        UPDATE ticket 
+        SET state = 'cancelled', resolved_at = NOW()
+        WHERE ticket_id = $1;
+        `;
+        await pool.query(query, [ticketId]);
+    } catch (error) {
+        console.error(`Napaka pri preklicu ticketa`, error);
+        throw error;
+    }
   };
   
 // **Funkcija za ponovno odpriranje ticketa**
 export const reOpenTicket = async (ticketId: number) => {
-    const query = `
-      UPDATE ticket 
-      SET state = 'open', resolved_at = NULL
-      WHERE ticket_id = $1;
-    `;
-    await pool.query(query, [ticketId]);
+    try {
+        const query = `
+            UPDATE ticket 
+            SET state = 'open', resolved_at = NULL
+            WHERE ticket_id = $1;
+        `;
+        await pool.query(query, [ticketId]);
+    } catch (error) {
+        console.error(`Napaka pri ponovnem odpiranju ticketa`, error);
+        throw error;
+    }
   };
 
   // **Funkcija za nastavljanje ticketa na on hold**
 export const putOnHoldTicket = async (ticketId: number) => {
-    const query = `
-      UPDATE ticket 
-      SET state = 'awaiting info', resolved_at = NOW()
-      WHERE ticket_id = $1;
-    `;
-    await pool.query(query, [ticketId]);
+    try {
+        const query = `
+        UPDATE ticket 
+        SET state = 'awaiting info', resolved_at = NOW()
+        WHERE ticket_id = $1;
+        `;
+        await pool.query(query, [ticketId]);
+    } catch (error) {
+        console.error(`Napaka pri dajanju ticketa na on-hold`, error);
+        throw error;
+    } 
   };
 
     // **Funkcija za za posodabljanje sla reasona**
 export const updateSlaReason = async (ticketId: string, reason: string, accept_sla: boolean) => {
-    if (accept_sla)
-    {
-        const query = `
-            UPDATE ticket SET accept_sla_breach = $1, updated_at = NOW()
-            WHERE ticket_id = $2
-        `;
-        await pool.query(query, [reason, ticketId]);
-    }
-    else
-    {
-        const query = `
-            UPDATE ticket SET sla_breach = $1, updated_at = NOW()
-            WHERE ticket_id = $2
-        `;
-        await pool.query(query, [reason, ticketId]);
+    try {
+        if (accept_sla)
+            {
+                const query = `
+                    UPDATE ticket SET accept_sla_breach = $1, updated_at = NOW()
+                    WHERE ticket_id = $2
+                `;
+                await pool.query(query, [reason, ticketId]);
+            }
+        else
+            {
+                const query = `
+                    UPDATE ticket SET sla_breach = $1, updated_at = NOW()
+                    WHERE ticket_id = $2
+                `;
+                await pool.query(query, [reason, ticketId]);
+            }
+    } catch (error) {
+        console.error(`Napaka pri posodabljanju sla`, error);
+        throw error;
     }
   };
+
+// **Funkcija za pridobitev uporabnikovega imena in podjetja na podlagi user_id**
+export const getUserData = async (user_id: number) => {
+    try {
+        const result = await pool.query(
+            `SELECT CONCAT(u.first_name, ' ', u.last_name) AS full_name, c.company_name, u.group_id, (SELECT contract_id FROM contract WHERE company_id = u.company_id ORDER BY RANDOM() LIMIT 1) AS contract_id FROM users u JOIN company c ON u.company_id = c.company_id WHERE u.user_id = $1`,
+            [user_id]
+        );
+        return result.rows[0] || null;
+    } catch (error) {
+        console.error(`Napaka pri pridobivanju podatkov za user_id=${user_id}:`, error);
+        throw error;
+    }
+};
 
 export default pool;

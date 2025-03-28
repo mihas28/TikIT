@@ -6,6 +6,7 @@ import AdminPanel from '@/views/AdminPanel.vue';
 import CreateCustom from '@/views/CreateCustom.vue';
 import CreateTicket from '@/views/CreateTicket.vue';
 import AllTickets from '@/views/AllTickets.vue';
+import MyTickets from '@/views/MyTickets.vue';
 
 const routes = [
     { path: '/', redirect: '/login' }, // Privzeta stran je login
@@ -72,8 +73,65 @@ const routes = [
         }
     },
     { 
+        path: '/ticket/user/:id', 
+        name: 'TicketUser',
+        component: () => import('@/views/TicketUser.vue'),
+        beforeEnter: (to: any, from: any, next: any) => {
+            const authStore = useAuthStore();
+            if (!authStore.isAuthenticated) {
+                next('/login'); // Če ni prijavljen, ga preusmeri na login
+            } else {
+                next();
+            }
+        }
+    },
+    /* TODO (maybe)
+    {
+        path: '/ticket/:id',
+        name: 'TicketEntry',
+        beforeEnter: (to: any, from: any, next: any) => {
+            const authStore = useAuthStore();
+
+            if (!authStore.isAuthenticated) {
+            next('/login');
+            } else {
+            const role = authStore.userRole;
+
+            if (role === 'admin' || role === 'operator') {
+                next({ name: 'TicketDetails', params: { id: to.params.id } });
+            } else {
+                next({ name: 'TicketUser', params: { id: to.params.id } });
+            }
+            }
+        }
+    },
+    {
+        path: '/ticket/details/:id',
+        name: 'TicketDetails',
+        component: () => import('@/views/TicketDetails.vue'),
+    },
+    {
+        path: '/ticket/user/:id',
+        name: 'TicketUser',
+        component: () => import('@/views/TicketUser.vue'),
+    },
+
+    */
+    { 
         path: '/all-tickets', 
         component: AllTickets,
+        beforeEnter: (to: any, from: any, next: any) => {
+            const authStore = useAuthStore();
+            if (!authStore.isAuthenticated) {
+                next('/login'); // Če ni prijavljen, ga preusmeri na login
+            } else {
+                next();
+            }
+        }
+    },
+    { 
+        path: '/my-tickets', 
+        component: MyTickets,
         beforeEnter: (to: any, from: any, next: any) => {
             const authStore = useAuthStore();
             if (!authStore.isAuthenticated) {

@@ -1057,7 +1057,7 @@ const redirectToParentTicket = () => {
           class="btn-secondary">
           Vpiši čas
         </button>
-        <button :disabled="!isTicketEditable" v-if="((ticket.primary[0] === undefined && ticket.ticket.caller_id !== parseInt(currentUserId,10)) || (ticket.primary[0].user_id !== parseInt(currentUserId,10) && ticket.ticket.caller_id !== parseInt(currentUserId,10))) && ticket.ticket.state !== 'cancelled'" 
+        <button :disabled="!isTicketEditable" v-if="((ticket.primary[0] === undefined && ticket.ticket.caller_id !== parseInt(currentUserId,10)) || (ticket.primary[0] !== undefined && ticket.primary[0].user_id !== parseInt(currentUserId,10) && ticket.ticket.caller_id !== parseInt(currentUserId,10))) && ticket.ticket.state !== 'cancelled'" 
           @click="assignToMe" 
           class="btn-success">
           Dodeli name

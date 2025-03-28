@@ -24,7 +24,7 @@ const submit = () => {
       <h5>Razlog za SLA prekoračitev</h5>
       <textarea class="form-control" v-model="reason" rows="4" />
       <div class="mt-3 d-flex justify-content-end">
-        <button class="btn btn-primary" @click="submit">Shrani</button>
+        <button class="btn-primary" @click="submit">Shrani</button>
       </div>
     </div>
   </div>
@@ -46,5 +46,14 @@ const submit = () => {
 .modal-content {
   width: 100%;
   max-width: 500px;
+}
+
+.btn-primary {
+  background-color: #00B0BE;
+  color: white;
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
 }
 </style>

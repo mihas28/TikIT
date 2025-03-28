@@ -19,7 +19,7 @@ import { getCompany, verifyUser, registerUser, getAllCompanies,
   getAllTickets, getTicketById, createTicket, updateTicket, getTimeWorkedByUserAndTicket, createTimeWorked, updateTimeWorked,
   getAllCompaniesEssential, getAllContractsEssential, getAllUsersEssential, getAllGroupsEssential, getAllTicketsEssential,
   getTimeWorkedByTicket, updatePrimary, syncAdditionalResolvers, getNameLastNamebyUserId, resolveTicket, cancelTicket,
-  updateSlaReason, reOpenTicket, putOnHoldTicket} from './db/postgres';
+  updateSlaReason, reOpenTicket, putOnHoldTicket, getUserData, getTicketEssential, getIdTicketEssential} from './db/postgres';
 import connectMongo, { getChatsByTicketId, createChat } from './db/mongo';
 import { authenticateJWT, generateAccessToken, generateRefreshToken, refreshToken, authorizeRoles } from './middleware/auth';
 import { check } from 'express-validator';
@@ -321,6 +321,27 @@ app.put('/company/:company_id', authenticateJWT, authorizeRoles('admin'), async 
       res.status(500).json({ error: 'Napaka pri posodabljanju podjetja' });
   }
 });
+
+// **Pridobitev imena in priimka uporabnika ter imena podjetja**
+// @ts-ignore
+app.get('/userData/:user_id', authenticateJWT, authorizeRoles('admin', 'operator', 'user'), async (req: Request, res: Response) => {
+    try {
+        const user_id = parseInt(req.params.user_id, 10);
+        if (isNaN(user_id)) {
+            return res.status(400).json({ error: 'Neveljaven user_id' });
+        }
+  
+        const company = await getUserData(user_id);
+        if (!company) {
+            return res.status(404).json({ error: 'Uporabnik ni najden' });
+        }
+  
+        res.status(200).json(company);
+    } catch (error) {
+        console.error(`Napaka pri pridobivanju uporabnika ID=${req.params.user_id}:`, error);
+        res.status(500).json({ error: 'Napaka pri dostopu do uporabnika' });
+    }
+  });
 
 // **Pridobitev vseh pogodb**
 app.get('/contract', authenticateJWT, authorizeRoles('admin', 'operator'), async (req: Request, res: Response) => {
@@ -730,6 +751,41 @@ app.get('/tickets/essential', authenticateJWT, authorizeRoles('admin', 'operator
     }
 });
 
+// **Pridobitev vseh zahtevkov, katerih je klicatelj user_id**
+// @ts-ignore
+app.get('/tickets/essential/:ticket_id', authenticateJWT, authorizeRoles('admin', 'operator', 'user'), async (req: Request, res: Response) => {
+    try {
+        const ticket_id = parseInt(req.params.ticket_id, 10);
+        if (isNaN(ticket_id)) {
+            return res.status(400).json({ error: 'Neveljaven ticket_id' });
+        }
+
+        const tickets = await getTicketEssential(ticket_id);
+        res.status(200).json(tickets);
+    } catch (error) {
+        console.error('Napaka pri pridobivanju zahtevkov:', error);
+        res.status(500).json({ error: 'Napaka pri dostopu do podatkov zahtevkov' });
+    }
+});
+
+// **Pridobitev vseh specifičnega zahtevka, katerega je klicatelj je user_id**
+// @ts-ignore
+app.get('/tickets/essential/:ticket_id/:user_id', authenticateJWT, authorizeRoles('admin', 'operator', 'user'), async (req: Request, res: Response) => {
+    try {
+        const ticket_id = parseInt(req.params.ticket_id, 10);
+        const user_id = parseInt(req.params.user_id, 10);
+        if (isNaN(ticket_id) || isNaN(user_id)) {
+            return res.status(400).json({ error: 'Neveljaven ticket_id ali user_id' });
+        }
+
+        const tickets = await getIdTicketEssential(user_id, ticket_id);
+        res.status(200).json(tickets);
+    } catch (error) {
+        console.error('Napaka pri pridobivanju zahtevkov:', error);
+        res.status(500).json({ error: 'Napaka pri dostopu do podatkov zahtevkov' });
+    }
+});
+
 // **Pridobitev enega zahtevka na podlagi ticket_id**
 // @ts-ignore
 app.get('/tickets/:ticket_id', authenticateJWT, authorizeRoles('admin', 'operator'), async (req: Request, res: Response) => {
@@ -781,9 +837,9 @@ app.get('/tickets-time-worked/:ticket_id', authenticateJWT, authorizeRoles('admi
     }
   });
 
-// **Dodajanje novega zahtevka**
+// **Dodajanje novega zahtevka po meri**
 // @ts-ignore
-app.post('/tickets', authenticateJWT, async (req: Request, res: Response) => {
+app.post('/tickets', authenticateJWT, authorizeRoles('admin', 'operator'), async (req: Request, res: Response) => {
   try {
       const { title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id } = req.body;
 
@@ -799,6 +855,44 @@ app.post('/tickets', authenticateJWT, async (req: Request, res: Response) => {
       res.status(500).json({ error: 'Napaka pri dodajanju zahtevka' });
   }
 });
+
+// **Vrne številčni impact in urgency na podlagi priority**
+export const getImpactAndUrgencyFromPriority = (priority: string): { impact: string; urgency: string } => {
+    switch (priority) {
+      case 'P1':
+        return { impact: '1', urgency: '1' } // high / high
+      case 'P2':
+        return { impact: '1', urgency: '2' } // high / medium
+      case 'P3':
+        return { impact: '2', urgency: '2' } // medium / medium
+      case 'P4':
+        return { impact: '3', urgency: '3' } // low / low
+      default:
+        return { impact: '2', urgency: '2' } // varnostna privzeta
+    }
+  }  
+
+// **Dodajanje novega zahtevka po meri**
+// @ts-ignore
+app.post('/tickets/create', authenticateJWT, authorizeRoles('admin', 'operator', 'user'), async (req: Request, res: Response) => {
+    try {
+        const { title, description, priority, type, caller_id, group_id, contract_id, parent_ticket_id } = req.body;
+
+        const {impact, urgency} = getImpactAndUrgencyFromPriority(priority);
+        const state = 'new';
+  
+        if (!title || !description || !impact || !urgency || !state || !type || !caller_id || !group_id || !contract_id) {
+            return res.status(400).json({ error: 'Manjkajoči podatki' });
+        }
+  
+        const newTicket = await createTicket(title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id);
+        createChat(newTicket.ticket_id, { type: "text", content: "Ticket z številko " + newTicket.ticket_id + " uspešno ustvarjen dne " + formatDate(new Date()), filename: ''}, false, "System");
+        res.status(201).json(newTicket);
+    } catch (error) {
+        console.error('Napaka pri dodajanju zahtevka:', error);
+        res.status(500).json({ error: 'Napaka pri dodajanju zahtevka' });
+    }
+  });
 
 // **Posodabljanje statusa ticketa**
 // @ts-ignore

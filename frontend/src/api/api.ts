@@ -698,3 +698,67 @@ export const submitAcceptSlaBreach = async (ticketId: number, reason: string, ac
   }
 }
 
+// **Funkcija za pridobivanje imena, priimka ter podjetja kjer dela uporabnik user_id**
+export const fetchUserEssentialDataById = async (user_id: string) => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.get(`http://localhost:3000/userData/${user_id}`, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Napaka pri pridobivanju podatkov iz /userData:', error);
+    throw error;
+  }
+};
+
+// **Funkcija za ustvarjanje zahtevka**
+export const createTicket = async (data: Record<string, any>) => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.post(`http://localhost:3000/tickets/create`, data, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+};
+
+// **Funkcija za pridobivanje, ki je klicatelj uporabnik**
+export const loadMyTickets = async (user_id: string) => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.get(`http://localhost:3000/tickets/essential/${user_id}`, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Napaka pri pridobivanju podatkov iz /tickets/${user_id}:`, error);
+    throw error;
+  }
+};
+
+// **Funkcija za pridobivanje, ki je klicatelj uporabnik**
+export const loadMyTicketById = async (user_id: string, ticket_id: string) => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.get(`http://localhost:3000/tickets/essential/${ticket_id}/${user_id}`, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Napaka pri pridobivanju podatkov iz /tickets/essential/${ticket_id}/${user_id}:`, error);
+    throw error;
+  }
+};
