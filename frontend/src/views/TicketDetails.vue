@@ -1658,13 +1658,6 @@ li:hover {
   text-decoration: none;
 }
 
-.file-link {
-  display: block;
-  margin-top: 5px;
-  color: #00B0BE;
-  text-decoration: none;
-}
-
 .file-label {
   display: inline-block;
   background-color: #746EBC;
@@ -1703,7 +1696,8 @@ li:hover {
 }
 
 .comment-text {
-  white-space: pre-line; /* Omogoči prelom vrstic */
+  white-space: normal; /* omogoči prelom */
+  word-break: break-word; /* prelom tudi sredi dolgih besed */
 }
 
 </style>

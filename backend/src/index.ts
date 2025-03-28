@@ -19,7 +19,7 @@ import { getCompany, verifyUser, registerUser, getAllCompanies,
   getAllTickets, getTicketById, createTicket, updateTicket, getTimeWorkedByUserAndTicket, createTimeWorked, updateTimeWorked,
   getAllCompaniesEssential, getAllContractsEssential, getAllUsersEssential, getAllGroupsEssential, getAllTicketsEssential,
   getTimeWorkedByTicket, updatePrimary, syncAdditionalResolvers, getNameLastNamebyUserId, resolveTicket, cancelTicket,
-  updateSlaReason, reOpenTicket, putOnHoldTicket, getUserData, getTicketEssential, getIdTicketEssential} from './db/postgres';
+  updateSlaReason, reOpenTicket, putOnHoldTicket, getUserData, getTicketEssential, getIdTicketEssential, getMyTickets} from './db/postgres';
 import connectMongo, { getChatsByTicketId, createChat } from './db/mongo';
 import { authenticateJWT, generateAccessToken, generateRefreshToken, refreshToken, authorizeRoles } from './middleware/auth';
 import { check } from 'express-validator';
@@ -761,6 +761,23 @@ app.get('/tickets/essential/:ticket_id', authenticateJWT, authorizeRoles('admin'
         }
 
         const tickets = await getTicketEssential(ticket_id);
+        res.status(200).json(tickets);
+    } catch (error) {
+        console.error('Napaka pri pridobivanju zahtevkov:', error);
+        res.status(500).json({ error: 'Napaka pri dostopu do podatkov zahtevkov' });
+    }
+});
+
+// **Pridobitev vseh mojih dodeljenih zahtevkov**
+// @ts-ignore
+app.get('/tickets/my/:user_id', authenticateJWT, authorizeRoles('admin', 'operator'), async (req: Request, res: Response) => {
+    try {
+        const user_id = parseInt(req.params.user_id, 10);
+        if (isNaN(user_id)) {
+            return res.status(400).json({ error: 'Neveljaven ticket_id' });
+        }
+
+        const tickets = await getMyTickets(user_id);
         res.status(200).json(tickets);
     } catch (error) {
         console.error('Napaka pri pridobivanju zahtevkov:', error);

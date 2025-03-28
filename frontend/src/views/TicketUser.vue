@@ -161,8 +161,15 @@ const handleFileDrop = (event: DragEvent) => {
   event.preventDefault();
   const file = event.dataTransfer?.files[0];
 
-  if (file && (file.type === "application/pdf" || file.type.startsWith("image/"))) {
+  if (!file) return;
+
+  const isValidType = file.type === "application/pdf" || file.type.startsWith("image/");
+  const isValidSize = file.size <= 2 * 1024 * 1024; // 2MB
+
+  if (isValidType && isValidSize) {
     uploadedFile.value = file;
+  } else if (!isValidSize) {
+    alert("Največja dovoljena velikost datoteke je 2 MB!");
   } else {
     alert("Dovoljene so samo slike (.jpg, .png) in PDF datoteke!");
   }
@@ -170,8 +177,18 @@ const handleFileDrop = (event: DragEvent) => {
 
 const handleFileSelect = (event: Event) => {
   const input = event.target as HTMLInputElement;
-  if (input.files && input.files.length > 0) {
-    uploadedFile.value = input.files[0];
+  if (!input.files || input.files.length === 0) return;
+
+  const file = input.files[0];
+  const isValidType = file.type === "application/pdf" || file.type.startsWith("image/");
+  const isValidSize = file.size <= 2 * 1024 * 1024; // 2MB
+
+  if (isValidType && isValidSize) {
+    uploadedFile.value = file;
+  } else if (!isValidSize) {
+    alert("Največja dovoljena velikost datoteke je 2 MB!");
+  } else {
+    alert("Dovoljene so samo slike (.jpg, .png) in PDF datoteke!");
   }
 };
 
@@ -264,7 +281,7 @@ const openDocument = (base64String: string, filename: string = "dokument.pdf") =
     <div class="ticket-comments">
       <h3>Komunikacija</h3>
       
-      <!-- Vnos polja za javna in zasebna sporočila -->
+      <!-- Vnos polja za javna sporočila -->
       <div class="comment-inputs">
         <textarea :disabled="!isTicketEditable" v-model="newPublicComment" placeholder="Vnesi komentar..." class="input-field"></textarea>
         <div class="ticket-nav1">
@@ -289,33 +306,32 @@ const openDocument = (base64String: string, filename: string = "dokument.pdf") =
 
       <!-- Število sporočil -->
       <div class="comment-count">
-        Javni komentarji: {{ comments.filter(c => c.private === false).length }} | Zasebni komentarji: {{ comments.filter(c => c.private === true).length }}
+        Število komentarjev: {{ comments.filter(c => c.private === false).length }}
       </div>
 
       <!-- Seznam komentarjev -->
       <ul class="comment-list">
-        <li v-for="comment in comments" :key="comment.created_at" :class="{
-            'public-comment': comment.private === false,
-            'private-comment': comment.private === true
-          }">
-          <strong>
-            <i class="bi" :class="comment.private === false ? 'bi-globe' : 'bi-lock'"></i>
-            {{ comment.name }}
-            <span class="date">{{ formatDate(comment.created_at) }}</span>
-          </strong>
+        <span v-for="comment in comments" :key="comment.created_at">
+          <li v-if="comment.private === false" class="public-comment">
+            <strong>
+              <i class="bi bi-globe"></i>
+              {{ comment.name }}
+              <span class="date">{{ formatDate(comment.created_at) }}</span>
+            </strong>
 
-          <br><br>
+            <br><br>
 
-          <p v-if="comment.message && comment.message.type === 'text'" class="comment-text">
-            {{ comment.message.content }}
-          </p>
+            <p v-if="comment.message && comment.message.type === 'text'" class="comment-text">
+              {{ comment.message.content }}
+            </p>
 
-          <img v-else-if="comment.message.type === 'image'" :src="comment.message.content" style="max-width: 40%; border-radius: 5px;" />
+            <img v-else-if="comment.message.type === 'image'" :src="comment.message.content" style="max-width: 40%; border-radius: 5px;" />
 
-          <a v-else class="file-link" @click.prevent="openDocument(comment.message.content, comment.message.filename)">
-            <i class="bi bi-file-earmark-pdf"></i> {{ comment.message.filename || "Odpri dokument" }}
-          </a>
-        </li>
+            <a v-else class="file-link" @click.prevent="openDocument(comment.message.content, comment.message.filename)">
+              <i class="bi bi-file-earmark-pdf"></i> {{ comment.message.filename || "Odpri dokument" }}
+            </a>
+          </li>
+        </span>
         <li></li>
       </ul>
     </div>
@@ -481,6 +497,14 @@ label {
   font-weight: bold;
 }
 
+.comment-list {
+    list-style-type: none;
+    padding: 0;
+    margin-left: 0px;
+    margin-right: 0px;
+    width: 100%;
+  }
+
 .comment-list li {
   padding: 10px;
   border-bottom: 1px solid #ddd;
@@ -491,11 +515,6 @@ label {
 .public-comment {
   background-color: #e6f7ff;
   border-left: 5px solid #00B0BE;
-}
-
-.private-comment {
-  background-color: #fff3e6;
-  border-left: 5px solid #ff7b00;
 }
 
 .file-link {
@@ -530,6 +549,10 @@ input, select, textarea, ul, li {
   border-radius: 5px;
 }
 
+textarea {
+  min-height: 150px;
+}
+
 .file-upload {
   display: flex;
   gap: 10px;
@@ -547,7 +570,18 @@ input, select, textarea, ul, li {
 ul {
   list-style: none;
 }
+
+.comment-text {
+  white-space: normal; /* omogoči prelom */
+  word-break: break-word; /* prelom tudi sredi dolgih besed */
+}
+
+a {
+  cursor: pointer;
+}
+
+li:hover {
+  background: #f0f0f0;
+  cursor: pointer;
+}
 </style>
-
-
-

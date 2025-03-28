@@ -59,7 +59,7 @@ onMounted(async () => {
 // **Oddaj ticket**
 const submitTicket = async () => {
   try {
-    await createTicket({
+    const createdTicket = await createTicket({
       title: title.value,
       description: description.value,
       priority: priority.value,
@@ -68,7 +68,7 @@ const submitTicket = async () => {
       group_id: groupList.value,
       contract_id: contract.value
     })
-    //router.push('/moji-zahtevki')
+    router.push({ name: 'TicketUser', params: { id: createdTicket.ticket_id } });
   } catch (err) {
     console.error('Napaka pri oddaji zahtevka:', err)
   }

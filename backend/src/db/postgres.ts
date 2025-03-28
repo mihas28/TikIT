@@ -552,6 +552,20 @@ export const getTicketEssential = async (user_id: number) => {
     }
 };
 
+// **Funkcija za pridobitev vseh zahtevkov, ki so dodeljeni name**
+export const getMyTickets = async (user_id: number) => {
+    try {
+        const result = await pool.query(
+            'SELECT t.ticket_id, t.title, t.created_at, CONCAT(caller.first_name, \' \', caller.last_name) AS caller, comp.company_name, CASE WHEN t.impact = 1 AND t.urgency = 1 THEN 1 WHEN t.impact = 2 AND t.urgency = 1 THEN 2 WHEN t.impact = 3 AND t.urgency = 1 THEN 3 WHEN t.impact = 1 AND t.urgency = 2 THEN 2 WHEN t.impact = 1 AND t.urgency = 3 THEN 3 WHEN t.impact = 2 AND t.urgency = 2 THEN 3 WHEN t.impact = 3 AND t.urgency = 2 THEN 4 WHEN t.impact = 2 AND t.urgency = 3 THEN 4 WHEN t.impact = 3 AND t.urgency = 3 THEN 4 END AS priority, t.state, t.type, g.group_name AS assignment_group, CASE WHEN tw.primary_resolver IS TRUE THEN \'Primarni\' WHEN tw.primary_resolver IS FALSE THEN \'Sekundarni\' END AS role FROM ticket t JOIN users caller ON t.caller_id = caller.user_id JOIN company comp ON caller.company_id = comp.company_id JOIN time_worked tw ON tw.ticket_id = t.ticket_id JOIN users assigned ON tw.user_id = assigned.user_id LEFT JOIN assigment_group g ON assigned.group_id = g.group_id WHERE tw.user_id = $1 AND tw.primary_resolver IS NOT NULL',
+            [user_id]
+        );
+        return result.rows;
+    } catch (error) {
+        console.error('Napaka pri pridobivanju zahtevkov:', error);
+        throw error;
+    }
+};
+
 // **Funkcija za pridobitev določenega zahtevka, katerih je klicatelj user_id**
 export const getIdTicketEssential = async (user_id: number, ticket_id: number) => {
     try {

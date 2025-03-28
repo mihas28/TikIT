@@ -7,6 +7,7 @@ import CreateCustom from '@/views/CreateCustom.vue';
 import CreateTicket from '@/views/CreateTicket.vue';
 import AllTickets from '@/views/AllTickets.vue';
 import MyTickets from '@/views/MyTickets.vue';
+import AssignedTickets from '@/views/AssignedTickets.vue';
 
 const routes = [
     { path: '/', redirect: '/login' }, // Privzeta stran je login
@@ -120,6 +121,18 @@ const routes = [
     { 
         path: '/all-tickets', 
         component: AllTickets,
+        beforeEnter: (to: any, from: any, next: any) => {
+            const authStore = useAuthStore();
+            if (!authStore.isAuthenticated) {
+                next('/login'); // Če ni prijavljen, ga preusmeri na login
+            } else {
+                next();
+            }
+        }
+    },
+    { 
+        path: '/assigned-tickets', 
+        component: AssignedTickets,
         beforeEnter: (to: any, from: any, next: any) => {
             const authStore = useAuthStore();
             if (!authStore.isAuthenticated) {

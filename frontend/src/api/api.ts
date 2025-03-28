@@ -380,7 +380,7 @@ export const assignTicket = async (data: Record<string, any>) => {
   }
 };
 
-// **Funkcija za pridobivanje ticketov**
+// **Funkcija za pridobivanje vseh ticketov**
 export const loadTickets = async () => {
   try {
     const authStore = useAuthStore();
@@ -392,6 +392,22 @@ export const loadTickets = async () => {
     return response.data;
   } catch (error) {
     console.error('Napaka pri pridobivanju podatkov iz /tickets:', error);
+    throw error;
+  }
+};
+
+// **Funkcija za pridobivanje mojih dodeljenih ticketov**
+export const loadMaAssignedTickets = async (user_id: string) => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.get(`http://localhost:3000/tickets/my/${user_id}`, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Napaka pri pridobivanju podatkov iz /tickets/my/${user_id}:`, error);
     throw error;
   }
 };
