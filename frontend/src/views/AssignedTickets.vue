@@ -28,7 +28,7 @@ const getUserIdFromJWT = () => {
 
 // **Definicija podatkov**
 interface Ticket {
-  ticket_id: number;
+  ticket_id: string;
   title: string;
   created_at: string;
   caller: string;
@@ -47,10 +47,13 @@ const sortColumn = ref<string | null>(null);
 const sortDirection = ref<'asc' | 'desc'>('asc');
 const currentPage = ref(1);
 const ticketsPerPage = 15;
+const isLoading = ref(false);
 
 onMounted(async () => {
+  isLoading.value = true;
   currentUserId.value = getUserIdFromJWT() || '';
   tickets.value = await loadMaAssignedTickets(currentUserId.value);  
+  isLoading.value = false;
 });
 
 // **Formatiranje datuma**
@@ -61,16 +64,16 @@ const formatDate = (dateString: string): string => {
 
 // **Preslikava prioritet**
 const priorityMap: { [key: string]: { text: string; color: string } } = {
-  "1": { text: "P1 - Kritična", color: "red" },
-  "2": { text: "P2 - Visoka", color: "orange" },
-  "3": { text: "P3 - Srednja", color: "green" },
-  "4": { text: "P4 - Nizka", color: "green" }
+  "1": { text: "Kritična", color: "red" },
+  "2": { text: "Visoka", color: "orange" },
+  "3": { text: "Srednja", color: "green" },
+  "4": { text: "Nizka", color: "green" }
 };
 
 const stateMap: { [key: string]: { text: string; icon: string } } = {
   "new": { text: "Novo", icon: "bi bi-circle text-secondary" }, // Siva kroglica
   "open": { text: "Odprto", icon: "bi bi-arrow-repeat text-primary" }, // Modra ponovitev
-  "awaiting info": { text: "Čaka na informacije", icon: "bi bi-hourglass-split text-warning" }, // Rumena ura
+  "awaiting info": { text: "V čakanju", icon: "bi bi-hourglass-split text-warning" }, // Rumena ura
   "resolved": { text: "Rešeno", icon: "bi bi-check-circle text-success" }, // Zelena kljukica
   "closed": { text: "Zaključeno", icon: "bi bi-check-circle-fill text-secondary" }, // Siva polna kljukica
   "cancelled": { text: "Preklicano", icon: "bi bi-x-circle text-danger" } // Rdeč križec
@@ -91,8 +94,8 @@ const filteredTickets = computed(() => {
           : new Date(valB).getTime() - new Date(valA).getTime();
       }
 
-      // Če je stolpec "priority", pretvori v številko in sortiraj
-      if (sortColumn.value === "priority") {
+      // Če je stolpec "priority" ali "id", pretvori v številko in sortiraj
+      if (sortColumn.value === "priority" || sortColumn.value === "ticket_id") {
         return sortDirection.value === "asc"
           ? Number(valA) - Number(valB)
           : Number(valB) - Number(valA);
@@ -156,13 +159,21 @@ const shortenText = (text: string, maxLength: number = 70) =>
 </script>
 
 <template>
-    <div class="content-wrapper">
+
+    <div v-if="isLoading" class="content-wrapper">
+      <p>Nalaganje pogleda za pogled vseh mojih dodeljenih zahtevkov...</p>
+    </div>
+
+    <div v-if="!isLoading" class="content-wrapper">
       <h3>Seznam zahtevkov, ki so dodeljeni name</h3>
       <input type="text" v-model="searchQuery" placeholder="Išči zahtevke..." class="search-box" />
   
       <table>
         <thead>
           <tr>
+            <th @click="sortBy('ticket_id')">
+              ID <span v-if="sortColumn === 'ticket_id'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
+            </th>
             <th @click="sortBy('title')">
               Naziv <span v-if="sortColumn === 'title'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
             </th>
@@ -193,14 +204,15 @@ const shortenText = (text: string, maxLength: number = 70) =>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="ticket in paginatedTickets" :key="ticket.ticket_id" @click="openTicket(ticket.ticket_id)">
+          <tr v-for="ticket in paginatedTickets" :key="ticket.ticket_id" @click="openTicket(Number(ticket.ticket_id))">
+            <td>{{ shortenText(ticket.ticket_id) }}</td>
             <td>{{ shortenText(ticket.title) }}</td>
             <td>{{ formatDate(ticket.created_at) }}</td>
             <td>{{ shortenText(ticket.caller) }}</td>
             <td>{{ shortenText(ticket.company_name) }}</td>
             <td>
               <span :style="{ color: priorityMap[ticket.priority]?.color || 'black' }">
-                ● {{ priorityMap[ticket.priority]?.text || ticket.priority }}
+                {{ priorityMap[ticket.priority]?.text || ticket.priority }}
               </span>
             </td>
             <td>

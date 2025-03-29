@@ -22,13 +22,17 @@ const isAddModalOpen = ref(false);
 const isChangePasswordModalOpen = ref(false);
 const sortColumn = ref<string | null>(null);
 const sortDirection = ref<'asc' | 'desc'>('asc');
+const isLoading = ref(false);
 
 // **Funkcija za nalaganje uporabnikov**
 const loadUsers = async () => {
   try {
+    isLoading.value = true;
     users.value = await fetchUsers();
   } catch (error) {
     console.error('Napaka pri nalaganju uporabnikov:', error);
+  } finally {
+    isLoading.value = false;
   }
 };
 
@@ -92,7 +96,12 @@ const openChangePasswordModal = (user: any) => {
 </script>
 
 <template>
-  <div>
+
+  <div v-if="isLoading">
+    <p>Nalaganje uporabnikov...</p>
+  </div>
+
+  <div v-if="!isLoading">
     <h3>Uporabniki</h3>
     <input type="text" v-model="searchQuery" placeholder="Išči uporabnike..." />
 

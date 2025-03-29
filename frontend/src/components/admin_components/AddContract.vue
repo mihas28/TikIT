@@ -58,6 +58,7 @@ const addNewContract = async () => {
     const selectedCompany = companies.value.find(c => c.company_id === Number(newContract.value.company_id));
     newContract.value.company_name = selectedCompany ? selectedCompany.company_name : '';
     const createdContract = await addContract(newContract.value);
+    
     emit('add', createdContract);
     emit('close');
   } catch (err) {

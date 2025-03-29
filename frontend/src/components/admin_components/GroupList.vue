@@ -18,13 +18,17 @@ const isEditModalOpen = ref(false);
 const isAddModalOpen = ref(false);
 const sortKey = ref<keyof Group | null>(null);
 const sortOrder = ref<'asc' | 'desc'>('asc');
+const isLoading = ref(false);
 
 // **Funkcija za nalaganje skupin**
 const loadGroups = async () => {
   try {
+    isLoading.value = true;
     groups.value = await fetchGroups();
   } catch (error) {
     console.error('Napaka pri nalaganju skupin:', error);
+  } finally {
+    isLoading.value = false;
   }
 };
 
@@ -77,7 +81,12 @@ const openAddModal = () => {
 </script>
 
 <template>
-  <div>
+
+  <div v-if="isLoading">
+    <p>Nalaganje skupin...</p>
+  </div>
+
+  <div v-if="!isLoading">
     <h3>Skupine</h3>
     <input type="text" v-model="searchQuery" placeholder="Išči skupine..." />
 

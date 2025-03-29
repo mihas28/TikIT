@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import EditCompanyModal from './EditCompany.vue';
 import AddCompanyModal from './AddCompany.vue';
 import { fetchCompanyData } from '../../api/api';
+import AddContract from '../admin_components/AddContract.vue';
 
 interface Company {
   company_id: number;
@@ -21,6 +22,8 @@ const searchQuery = ref('');
 const selectedCompany = ref<Record<string, any>>({});
 const isEditModalOpen = ref(false);
 const isAddModalOpen = ref(false);
+const isContractModalOpen = ref(false);
+const isLoading = ref(false);
 
 // **Shranjuje trenutni stolpec in smer razvrščanja**
 const sortColumn = ref<keyof Company | null>(null);
@@ -29,10 +32,13 @@ const sortDirection = ref<'asc' | 'desc'>('asc');
 // **Funkcija za nalaganje podatkov ob zagonu**
 const loadTestData = async () => {
   try {
+    isLoading.value = true;
     companies.value = await fetchCompanyData();
   } catch (error) {
     console.error('Napaka pri nalaganju podatkov:', error);
-  }
+  } finally {
+    isLoading.value = false;
+  }  
 };
 
 // **Ko se komponenta naloži, se pokliče loadTestData()**
@@ -75,8 +81,10 @@ const filteredCompanies = computed(() => {
 
 // **Dodaj novo podjetje brez osveževanja**
 const addCompanyToList = (newCompany: Company) => {
-  companies.value.push(newCompany);
   isAddModalOpen.value = false;
+  companies.value.push(newCompany);
+  alert("Dodati morate še pogodbo za podjetje: " + newCompany.company_name);
+  isContractModalOpen.value = true;
 };
 
 // **Odpiranje modala za urejanje**
@@ -92,7 +100,11 @@ const openAddModal = () => {
 </script>
 
 <template>
-  <div>
+  <div v-if="isLoading">
+    <p>Nalaganje podjetij...</p>
+  </div>
+
+  <div v-if="!isLoading">
     <h3>Podjetja</h3>
     <input type="text" v-model="searchQuery" placeholder="Išči podjetja..." />
 
@@ -143,6 +155,7 @@ const openAddModal = () => {
 
     <EditCompanyModal v-if="isEditModalOpen" :company="selectedCompany" @close="isEditModalOpen = false" />
     <AddCompanyModal v-if="isAddModalOpen" @close="isAddModalOpen = false" @add="addCompanyToList"/>
+    <AddContract v-if="isContractModalOpen" @close="isContractModalOpen = false"/>
   </div>
 </template>
 

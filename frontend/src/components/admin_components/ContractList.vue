@@ -26,13 +26,17 @@ const isEditModalOpen = ref(false);
 const isAddModalOpen = ref(false);
 const sortKey = ref<keyof Contract | null>(null);
 const sortOrder = ref<'asc' | 'desc'>('asc');
+const isLoading = ref(false);
 
 // **Funkcija za nalaganje pogodb**
 const loadContracts = async () => {
   try {
+    isLoading.value = true;
     contracts.value = await fetchContracts();
   } catch (error) {
     console.error('Napaka pri nalaganju pogodb:', error);
+  } finally {
+    isLoading.value = false;
   }
 };
 
@@ -79,7 +83,11 @@ const openAddModal = () => {
 </script>
 
 <template>
-  <div>
+  <div v-if="isLoading">
+    <p>Nalaganje pogodb...</p>
+  </div>
+
+  <div v-if="!isLoading">
     <h3>Pogodbe</h3>
     <input type="text" v-model="searchQuery" placeholder="Išči pogodbe..." />
 

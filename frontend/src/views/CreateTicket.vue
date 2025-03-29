@@ -10,6 +10,8 @@ const router = useRouter()
 // ** Trenutni uporabnik
 const currentUserId = ref<string>('');
 
+const isLoading = ref(false);
+
 // **Podatki o uporabniku (klicatelju)**
 const callerName = ref('');
 const callerCompany = ref('');
@@ -43,6 +45,7 @@ const getUserIdFromJWT = () => {
 // **Pridobi uporabniške podatke ob prikazu**
 onMounted(async () => {
   try {
+    isLoading.value = true;
     currentUserId.value = getUserIdFromJWT() || '';
 
     const userData = await fetchUserEssentialDataById(currentUserId.value);
@@ -53,6 +56,8 @@ onMounted(async () => {
 
   } catch (err) {
     console.error('Napaka pri pridobivanju uporabnika:', err);
+  } finally {
+    isLoading.value = false;
   }
 })
 
@@ -76,7 +81,12 @@ const submitTicket = async () => {
 </script>
 
 <template>
-  <div class="content-wrapper">
+
+  <div v-if="isLoading" class="content-wrapper">
+    <p>Nalaganje...</p>
+  </div>
+
+  <div v-if="!isLoading" class="content-wrapper">
     <h2 class="header">Ustvari nov zahtevek</h2>
 
     <form @submit.prevent="submitTicket" class="ticket-form">
