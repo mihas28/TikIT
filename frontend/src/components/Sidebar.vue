@@ -47,7 +47,7 @@ defineExpose({ menuItems, isSidebarOpen, toggleSidebar, closeSidebar, logout, au
 <template>
     <!-- Navbar zgoraj na mobilnih napravah -->
     <div class="top-bar d-md-none">
-        <h3 class="text-white">TikIT</h3>
+        <img class="img-navbar" src="../assets/TikIT-logo.svg" alt="TikIT"/>
         <button class="hamburger-menu" @click="toggleSidebar">
             <i class="bi bi-list"></i>
         </button>
@@ -59,7 +59,7 @@ defineExpose({ menuItems, isSidebarOpen, toggleSidebar, closeSidebar, logout, au
     <!-- Sidebar -->
     <div :class="['sidebar', { 'sidebar-open': isSidebarOpen }]">
         <div class="sidebar-header d-none d-md-flex">
-            <h3 class="text-white">TikIT</h3>
+            <img class="img-sidebar" src="../assets/TikIT-logo.svg" alt="TikIT"/>
         </div>
         <ul class="nav flex-column">
             <span v-for="(item, index) in menuItems" :key="index">
@@ -137,6 +137,10 @@ defineExpose({ menuItems, isSidebarOpen, toggleSidebar, closeSidebar, logout, au
     .sidebar.sidebar-open {
         transform: translateX(0);
     }
+
+    .flex-column {
+        margin-top: 55px;
+    }
 }
 
 /* Hamburger menu */
@@ -168,4 +172,17 @@ defineExpose({ menuItems, isSidebarOpen, toggleSidebar, closeSidebar, logout, au
     margin-top: auto;
     padding: 10px;
 }
+
+img {
+    display: block;
+}
+
+.img-navbar {
+    width: 100px;
+}
+
+.img-sidebar {
+    width: 80%;
+}
+
 </style>

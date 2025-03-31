@@ -6,6 +6,9 @@ import { Application } from 'express-serve-static-core';
 import multer from 'multer';
 import jwt from "jsonwebtoken";
 
+import { google } from 'googleapis';
+import nodemailer from 'nodemailer';
+
 import http from 'http';
 import { Server } from 'socket.io';
 
@@ -19,10 +22,13 @@ import { getCompany, verifyUser, registerUser, getAllCompanies,
   getAllTickets, getTicketById, createTicket, updateTicket, getTimeWorkedByUserAndTicket, createTimeWorked, updateTimeWorked,
   getAllCompaniesEssential, getAllContractsEssential, getAllUsersEssential, getAllGroupsEssential, getAllTicketsEssential,
   getTimeWorkedByTicket, updatePrimary, syncAdditionalResolvers, getNameLastNamebyUserId, resolveTicket, cancelTicket,
-  updateSlaReason, reOpenTicket, putOnHoldTicket, getUserData, getTicketEssential, getIdTicketEssential, getMyTickets} from './db/postgres';
+  updateSlaReason, reOpenTicket, putOnHoldTicket, getUserData, getTicketEssential, getIdTicketEssential, getMyTickets, 
+  getUserIdByEmail, getGroupEmailById, getEmailByTicketId, updateTicketTimestamp, autoCloseResolvedTickets } from './db/postgres';
 import connectMongo, { getChatsByTicketId, createChat } from './db/mongo';
 import { authenticateJWT, generateAccessToken, generateRefreshToken, refreshToken, authorizeRoles } from './middleware/auth';
 import { check } from 'express-validator';
+import { testing } from 'googleapis/build/src/apis/testing';
+import { text } from 'stream/consumers';
 
 dotenv.config();
 
@@ -934,7 +940,6 @@ app.put('/tickets/close/:ticket_id', authenticateJWT, authorizeRoles('admin', 'o
     }
   });
   
-
 // **Posodobitev zahtevka na podlagi ticket_id**
 // @ts-ignore
 app.put('/tickets/:ticket_id', authenticateJWT, async (req: Request, res: Response) => {
@@ -1229,10 +1234,13 @@ io.on('connection', (socket) => {
 
     socket.on('sendMessage', async ({ ticket_id, message, isPrivate }, callback) => {
         try {
+          await updateTicketTimestamp(ticket_id);
           const name = await getNameLastNamebyUserId(userId);
           const savedMessage = await createChat(ticket_id, message, isPrivate, name[0].name);
       
           io.to(`ticket_${ticket_id}`).emit('newMessage', savedMessage); // Pošlje samo enkrat
+          
+          await updateExistingTicketChat(ticket_id, savedMessage, isPrivate);
       
           if (callback) {
             callback({ success: true });
@@ -1256,11 +1264,281 @@ io.on('connection', (socket) => {
     }); 
 });
 
+/*
+Pošiljanje in prejemanje mailov
+*/
+
+// **OAuth2 konfiguracija**
+const oAuth2Client = new google.auth.OAuth2(
+    process.env.CLIENT_ID,
+    process.env.CLIENT_SECRET,
+    'https://developers.google.com/oauthplayground'
+  );
+  
+  oAuth2Client.setCredentials({
+    refresh_token: process.env.REFRESH_TOKEN
+  });
+  
+  const gmail = google.gmail({ version: 'v1', auth: oAuth2Client });
+  
+  // **Sledimo zadnjemu poslanemu ID-ju**
+  let lastSentId: string | null = null;
+  
+  // **Ustvari email z UTF-8 podporo za šumnike**
+  function createEmail(sender: string, to: string, subject: string, body: string): string {
+    const encodedSubject = `=?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`;
+    const encodedBody = Buffer.from(body, 'utf-8').toString('base64');
+  
+    const message = [
+      `From: ${sender}`,
+      `To: ${to}`,
+      `Subject: ${encodedSubject}`,
+      'MIME-Version: 1.0',
+      'Content-Type: text/plain; charset="UTF-8"',
+      'Content-Transfer-Encoding: base64',
+      '',
+      encodedBody
+    ].join('\n');
+  
+    return Buffer.from(message)
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+  }
+
+  const createNewTicket = async (caller_id: number, from: string, title: string, description: string) => {
+    try {
+        const additional_info = await getUserData(caller_id);
+        if (!additional_info) {
+            return console.error('Uporabnik ni najden');
+        }
+
+        const state = 'new';
+        const impact = '3';
+        const urgency = '3';
+        const type = 'incident';
+        const group_id = additional_info.group_id;
+        const contract_id = additional_info.contract_id;
+        const parent_ticket_id = null;
+        const group_email = await getGroupEmailById(group_id);
+  
+        if (!group_email) {
+            return console.error('Email skupine ni najden');
+        }
+
+        if (!title || !description || !impact || !urgency || !state || !type || !caller_id || !group_id || !contract_id) {
+            return console.error('Manjkajoči podatki');
+        }
+  
+        const newTicket = await createTicket(title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id);
+        const text = "Ticket z številko " + newTicket.ticket_id + " uspešno ustvarjen dne " + formatDate(new Date()) + "."
+        createChat(newTicket.ticket_id, { type: "text", content: text, filename: ''}, false, "System");
+
+        await sendEmail(group_email, "TikIT zahtevek ID: [" + newTicket.ticket_id + "] - " + title, "Ustvarjen je bil nov zahtevek z ID: " + newTicket.ticket_id + ".\n\n" + description);
+        await sendEmail(from, "TikIT zahtevek ID: [" + newTicket.ticket_id + "] - " + title, "Težavo bomo poskušali odpravit v najkrajšem možnem času.\nProsimo vas da odgorarjate v na to sporočilo." + "\n\n" + description);
+        
+    } catch (error) {
+        console.error(`Napaka pri pridobivanju uporabnika ID=${caller_id}:`, error);
+    }
+  }
+
+  const updateExistingTicket = async (ticket_id: number, caller_id: number, from: string, title: string, description: string) => {
+    try {
+        
+        const ticket = await getTicketById(ticket_id);
+        if (!ticket) {
+            return console.error('Zahtevek ni najden');
+        }
+
+        if (ticket.state === 'new')
+        {
+            const group_id = ticket.group_id;
+            const group_email = await getGroupEmailById(group_id);
+    
+            if (!group_email) {
+                return console.error('Email skupine ni najden');
+            }
+
+            await sendEmail(group_email, "TikIT zahtevek ID: [" + ticket_id + "] - " + title, "Zahtevek vsebuje nove komentarje:\n\n" + description);
+        }
+        else if (ticket.state == "cancelled" || ticket.state == "closed")
+        {
+            await sendEmail(from, "TikIT zahtevek ID: [" + ticket_id + "] - " + title, "Zahtevek je v sistemu " + (ticket.state == "cancelled" ? "preklican" : "zaprt") + " zato njegova uporaba ni mogoča.\nProsimo vas da odprete nov zahtevek.\nHvala za razumevanje in lep pozdrav.\nTikIT");
+        }
+        else
+        { // poišči reševalce
+            const primary_resolvers = await getTimeWorkedByTicket(ticket_id, true);
+            const secondary_resolvers = await getTimeWorkedByTicket(ticket_id, false);
+            for (const primary of primary_resolvers) {
+                await sendEmail(primary.email, "TikIT zahtevek ID: [" + ticket_id + "] - " + title, "Zahtevek vsebuje nove komentarje:\n\n" + description);
+            }
+            
+            for (const secondary of secondary_resolvers) {
+                await sendEmail(secondary.email, "TikIT zahtevek ID: [" + ticket_id + "] - " + title, "Zahtevek vsebuje nove komentarje:\n\n" + description);
+            }
+        }
+
+        const name = await getNameLastNamebyUserId(caller_id);
+        const savedMessage = await createChat(ticket_id, {type: "text", content: description, filename: ''}, false, name[0].name);
+        io.to(`ticket_${ticket_id}`).emit('newMessage', savedMessage); // Pošlje samo enkrat
+        await updateTicketTimestamp(ticket_id);
+
+    } catch (error) {
+        console.error(`Napaka pri pridobivanju uporabnika ID=${caller_id}:`, error);
+    }
+  }
+
+  const updateExistingTicketChat = async (ticket_id: number, savedMessage: any, isPrivate: boolean) => {
+    try {
+        const caller_email = await getEmailByTicketId(ticket_id);
+        const ticket = await getTicketById(ticket_id);
+        if (!ticket) {
+            return console.error('Zahtevek ni najden');
+        }
+
+        if (ticket.state === 'new')
+        {
+            const group_id = ticket.group_id;
+            const group_email = await getGroupEmailById(group_id);
+    
+            if (!group_email) {
+                return console.error('Email skupine ni najden');
+            }
+
+            await sendEmail(group_email, "TikIT zahtevek ID: [" + ticket_id + "] - " + ticket.title, "Zahtevek vsebuje nove komentarje:\n\n" + (savedMessage.message.type == "text" ? savedMessage.message.content : "Odpri zahtevek za podrobnosti."));
+        }
+        else
+        { // poišči reševalce
+            const primary_resolvers = await getTimeWorkedByTicket(ticket_id, true);
+            const secondary_resolvers = await getTimeWorkedByTicket(ticket_id, false);
+            for (const primary of primary_resolvers) {
+                await sendEmail(primary.email, "TikIT zahtevek ID: [" + ticket_id + "] - " + ticket.title, "Zahtevek vsebuje nove komentarje:\n\n" + (savedMessage.message.type == "text" ? savedMessage.message.content : "Odpri zahtevek za podrobnosti."));
+            }
+            
+            for (const secondary of secondary_resolvers) {
+                await sendEmail(secondary.email, "TikIT zahtevek ID: [" + ticket_id + "] - " + ticket.title, "Zahtevek vsebuje nove komentarje:\n\n" + (savedMessage.message.type == "text" ? savedMessage.message.content : "Odpri zahtevek za podrobnosti."));
+            }
+        }
+
+        if (!isPrivate && caller_email !== null) 
+        {
+            await sendEmail(caller_email, "TikIT zahtevek ID: [" + ticket_id + "] - " + ticket.title, "Zahtevek vsebuje nove komentarje:\n\n" + (savedMessage.message.type == "text" ? savedMessage.message.content : "Odpri zahtevek za podrobnosti."));
+        }
+
+    } catch (error) {
+        console.error(`Napaka pri pridobivanju zahtevka ID=${ticket_id}:`, error);
+    }
+  }
+  
+  // **Pošlji email z Gmail API**
+  async function sendEmail(to: string, subject: string, body: string) {
+    const raw = createEmail(
+      process.env.SENDER_EMAIL!,
+      to!,
+      `${subject}`,
+      body
+    );
+  
+    const res = await gmail.users.messages.send({
+      userId: 'me',
+      requestBody: { raw }
+    });
+  }
+  
+  // **Preveri nove maile vsakih 5 minut**
+  async function checkNewEmails() {
+    try {
+      const oneMinuteAgoSec = Math.floor((Date.now() - 60 * 1000) / 1000);
+
+      const res = await gmail.users.messages.list({
+        userId: 'me',
+        maxResults: 100,
+        q: `label:INBOX after:${oneMinuteAgoSec}`,
+      });
+  
+      const messages = res.data.messages;
+      if (!messages || messages.length === 0) {
+        console.log('ℹ️ Ni novih sporočil.');
+        return;
+      }
+  
+      // **Filtriraj samo tiste po zadnjem znanem ID-ju**
+      const newMessages = messages.filter(m => {
+        if (!lastSentId) return true;
+        return m.id! > lastSentId;
+      });
+  
+      if (newMessages.length === 0) {
+        console.log('ℹ️ Ni novih sporočil po zadnjem ID-ju.');
+        return;
+      }
+      
+      for (const message of newMessages) {
+        const msg = await gmail.users.messages.get({
+          userId: 'me',
+          id: message.id!,
+          format: 'full',
+        });
+  
+        const subjectHeader = msg.data.payload?.headers?.find(h => h.name === 'Subject');
+        const subject = subjectHeader?.value || '(brez zadeve)';
+        const fromHeader = msg.data.payload?.headers?.find(h => h.name === 'From');
+        const from = fromHeader?.value || '(neznano)';
+  
+        // **Poišči vsebino - navadno ali base64 encoded**
+        const parts = msg.data.payload?.parts || [];
+        const textPart = parts.find(p => p.mimeType === 'text/plain');
+        const bodyData = textPart?.body?.data || msg.data.payload?.body?.data;
+  
+        // Ali uporabnik obstaja?
+        const regex1 = /<([^>]+)>/;
+        const match = from.match(regex1);
+        const email = match ? match[1] : null;
+        if (!email) {
+            console.error('Email is null or invalid');
+            return;
+        }
+        const userId = await getUserIdByEmail(email);
+        if (userId === null)
+        {
+            await sendEmail(from, "Uporabnik ne obstaja", "Uporabnik ne obstaja");
+            lastSentId = message.id!;
+            return;
+        }
+
+        const body = bodyData
+          ? Buffer.from(bodyData, 'base64').toString('utf-8')
+          : '(Ni vsebine)';
+
+        // Pridobitev ID številke zahtevka, če se nanaša na že obstoječ zahtevek
+        const regex2 = /ID: \[(\d+)\]/;
+        const match2 = subject.match(regex2);
+
+        // Ugotavljanje ali moram ustvarit nov ticket ali je to dodatek k obstoječemu
+        if (match2) { // obstoječi
+            const ticket_id = parseInt(match2[1], 10); // pretvori v številko
+            await updateExistingTicket(ticket_id, userId, from, subjectHeader?.value || '(brez zadeve)', body)
+        } else { //nov
+            await createNewTicket(userId, from, subjectHeader?.value || '(brez zadeve)', body);
+        }
+  
+        // **Posodobi zadnji poslan ID**
+        lastSentId = message.id!;
+      }
+    } catch (err) {
+      console.error('❌ Napaka pri preverjanju emailov:', err);
+    }
+  }
   
 // Inicializacija baz, zagon Express strežnika in zgon Socket.io strežnika
 initializeDatabases().then(() => {
     server.listen(PORT, () => { 
+      // Zagon na vsako eno minuto - preverjanje mailov
+      setInterval(checkNewEmails, 60 * 1000);
+      // Zagon na vsakih pol ure - posodabljanje statusa ticketa v stanje closed po 14 dnevih (31.3 referenca ticket: 74)
+      setInterval(autoCloseResolvedTickets, 30 * 60 * 1000);
+
       console.log(`Strežnik teče na http://localhost:${PORT}`);
     });
 });
-  

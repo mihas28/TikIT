@@ -1225,7 +1225,7 @@ const redirectToParentTicket = () => {
             </ul>
           </div>
           <div v-if="additionalResolvers.length">
-            <span @dblclick="getDetails('additional', resolver.id)" v-for="resolver in additionalResolvers" :key="resolver.id" class="resolver">
+            <span v-on:dblclick="isTicketEditable ? getDetails('additional', resolver.id) : null" v-for="resolver in additionalResolvers" :key="resolver.id" class="resolver">
               {{ resolver.name }}
               <i v-if="isTicketEditable" class="fa-regular fa-circle-xmark remove-icon" @click="removeResolver(resolver)"></i>
             </span>
@@ -1696,8 +1696,8 @@ li:hover {
 }
 
 .comment-text {
-  white-space: normal; /* omogoči prelom */
-  word-break: break-word; /* prelom tudi sredi dolgih besed */
+  white-space: pre-line; /* ohrani nove vrstice in omogoči prelom */
+  word-break: break-word;
 }
 
 </style>

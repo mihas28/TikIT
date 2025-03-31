@@ -253,9 +253,9 @@ const openDocument = (base64String: string, filename: string = "dokument.pdf") =
       <h2 class="incident-title1">
         {{ ticket.title }}
       </h2>
-      <h2 class="incident-title2">
+      <p class="incident-title2">
         {{ ticket.description }}
-      </h2>
+      </p>
 
       <div class="form-row">
         <div class="form-group">
@@ -389,7 +389,7 @@ const openDocument = (base64String: string, filename: string = "dokument.pdf") =
   border-radius: 5px;
   margin: 10px 0;
   border: 1px solid #00B0BE;
-  white-space: normal; /* omogoči prelom */
+  white-space: pre-line; /* omogoči prelom */
   word-break: break-word; /* prelom tudi sredi dolgih besed */
 }
 
@@ -572,8 +572,8 @@ ul {
 }
 
 .comment-text {
-  white-space: normal; /* omogoči prelom */
-  word-break: break-word; /* prelom tudi sredi dolgih besed */
+  white-space: pre-line; /* ohrani nove vrstice in omogoči prelom */
+  word-break: break-word;
 }
 
 a {

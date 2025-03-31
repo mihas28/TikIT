@@ -666,7 +666,7 @@ export const updateTicket = async (
 export const getTimeWorkedByTicket = async (ticket_id: number, primary_resolver: boolean) => {
     try {
         const result = await pool.query(
-            'SELECT t.*, CONCAT(u.first_name, \' \', u.last_name) AS resolver FROM time_worked t, users u WHERE ticket_id = $1 AND primary_resolver = $2 AND t.user_id = u.user_id', 
+            'SELECT t.*, CONCAT(u.first_name, \' \', u.last_name) AS resolver, u.email AS email FROM time_worked t, users u WHERE ticket_id = $1 AND primary_resolver = $2 AND t.user_id = u.user_id', 
             [ticket_id, primary_resolver]
         );
         return result.rows || [];
@@ -904,5 +904,79 @@ export const getUserData = async (user_id: number) => {
         throw error;
     }
 };
+
+// **Funkcija vrne user_id na podlagi e-maila, ali null če uporabnik ne obstaja**
+export const getUserIdByEmail = async (email: string): Promise<number | null> => {
+    try {
+        const result = await pool.query(
+            'SELECT user_id FROM users WHERE email = $1 LIMIT 1',
+            [email]
+        );
+
+        return result.rows.length > 0 ? result.rows[0].user_id : null;
+    } catch (error) {
+        console.error(`Napaka pri iskanju user_id za e-mail ${email}:`, error);
+        throw error;
+    }
+};
+
+// **Funkcija vrne e-mail klicatelja na podlagi ticket_id, ali null če ticket ne obstaja**
+export const getEmailByTicketId = async (ticket_id: number): Promise<string | null> => {
+    try {
+        const result = await pool.query(
+            'SELECT u.email AS email FROM ticket t, users u WHERE t.caller_id = u.user_id AND t.ticket_id = $1 LIMIT 1;',
+            [ticket_id]
+        );
+
+        return result.rows.length > 0 ? result.rows[0].email : null;
+    } catch (error) {
+        console.error(`Napaka pri iskanju e-maila za ticket_id ${ticket_id}:`, error);
+        throw error;
+    }
+};
+
+// **Funkcija vrne e-mail skupine na podlagi group_id**
+export const getGroupEmailById = async (group_id: number): Promise<string | null> => {
+    try {
+        const result = await pool.query(
+            'SELECT email FROM assigment_group WHERE group_id = $1',
+            [group_id]
+        );
+        return result.rows.length > 0 ? result.rows[0].email : null;
+    } catch (error) {
+        console.error(`Napaka pri pridobivanju e-maila za group_id=${group_id}:`, error);
+        throw error;
+    }
+};
+
+// **Funkcija posodobi polje `updated_at` na trenutno vrednost (NOW()) za določen ticket**
+export const updateTicketTimestamp = async (ticket_id: number): Promise<void> => {
+    try {
+        await pool.query(
+            'UPDATE ticket SET updated_at = NOW() WHERE ticket_id = $1',
+            [ticket_id]
+        );
+    } catch (error) {
+        console.error(`Napaka pri posodabljanju časa za ticket_id=${ticket_id}:`, error);
+        throw error;
+    }
+};
+
+// **Funkcija zapre vse tickete, ki so več kot 14 dni v stanju 'resolved'**
+export const autoCloseResolvedTickets = async (): Promise<void> => {
+    try {
+        await pool.query(`
+            UPDATE ticket
+            SET state = 'closed', updated_at = NOW()
+            WHERE state = 'resolved'
+              AND resolved_at IS NOT NULL
+              AND resolved_at < NOW() - INTERVAL '14 days'
+        `);
+    } catch (error) {
+        console.error('Napaka pri samodejnem zapiranju resolved ticketov:', error);
+        throw error;
+    }
+};
+
 
 export default pool;
