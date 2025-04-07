@@ -62,15 +62,17 @@ onMounted(loadWorkLog);
     <div class="modal-content">
       <h3>Vpiši število opravljenih ur za zahtevek ID: {{ ticketId }}</h3>
       <label>Trenutno število ur:</label>
-      <input v-model="numberOfHours" type="number" />
+      <input class="form-control" v-model="numberOfHours" type="number" />
 
       <label>Opis aktivnosti:</label>
-      <textarea v-model="description" type="text" ></textarea>
+      <textarea class="form-control" v-model="description" type="text" ></textarea>
 
       <p v-if="error" class="error">{{ error }}</p>
 
-      <button class="bt-save" @click="submitWorkLog()">Shrani</button>
-      <button class="bt-close" @click="$emit('close')">Prekliči</button>
+      <div class="d-flex justify-content-end gap-2 mt-3">
+        <button class="bt-close" @click="$emit('close')">Prekliči</button>
+        <button class="bt-save" @click="submitWorkLog()">Shrani</button>
+      </div>
     </div>
   </div>
 </template>
@@ -116,7 +118,8 @@ textarea {
 .modal-content {
   background: white;
   padding: 20px;
-  border-radius: 5px;
-  width: 400px;
+  border-radius: 8px;
+  width: 500px;
+  max-width: 90%;
 }
 </style>

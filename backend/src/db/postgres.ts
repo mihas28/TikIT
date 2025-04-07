@@ -530,7 +530,7 @@ export const getAllTickets = async () => {
 // **Funkcija za pridobitev vseh zahtevkov**
 export const getAllTicketsEssential = async () => {
     try {
-        const result = await pool.query('SELECT ticket_id AS id, title AS name FROM ticket');
+        const result = await pool.query('SELECT ticket_id AS id, title AS name FROM ticket ORDER BY ticket_id');
         return result.rows;
     } catch (error) {
         console.error('Napaka pri pridobivanju zahtevkov:', error);
@@ -920,6 +920,21 @@ export const getUserIdByEmail = async (email: string): Promise<number | null> =>
     }
 };
 
+// **Funkcija vrne email na podlagi user_id, ali null če uporabnik ne obstaja**
+export const getEmailByUserId = async (user_id: string): Promise<string | null> => {
+    try {
+        const result = await pool.query(
+            'SELECT email FROM users WHERE user_id = $1 LIMIT 1',
+            [user_id]
+        );
+
+        return result.rows.length > 0 ? result.rows[0].email : null;
+    } catch (error) {
+        console.error(`Napaka pri iskanju user_id za e-mail ${user_id}:`, error);
+        throw error;
+    }
+};
+
 // **Funkcija vrne e-mail klicatelja na podlagi ticket_id, ali null če ticket ne obstaja**
 export const getEmailByTicketId = async (ticket_id: number): Promise<string | null> => {
     try {
@@ -978,5 +993,73 @@ export const autoCloseResolvedTickets = async (): Promise<void> => {
     }
 };
 
+// **Funkcija vrne title in description na podlagi ticket_id**
+export const getTitleAndDescriptionFromTicket = async (ticket_id: number): Promise<any | null> => {
+    try {
+        const result = await pool.query(
+            'SELECT title, description FROM ticket WHERE ticket_id = $1',
+            [ticket_id]
+        );
+        return result.rows.length > 0 ? {title: result.rows[0].title, description: result.rows[0].title} : null;
+    } catch (error) {
+        console.error(`Napaka pri pridobivanju naslova in opisa za ticket_id=${ticket_id}:`, error);
+        throw error;
+    }
+};
+
+// **Pridobi vzdrževalne dogodke znotraj določenega tedna**
+export const getMaintenancesForWeek = async (start: string, end: string) => {
+    try {
+      const result = await pool.query(
+        `SELECT * FROM maintenance
+         WHERE (from_date BETWEEN $1 AND $2)
+            OR (to_date BETWEEN $1 AND $2)
+            OR (from_date <= $1 AND to_date >= $2)`, // za dogodke, ki trajajo čez cel teden
+        [start, end]
+      )
+      return result.rows
+    } catch (err) {
+      console.error('Napaka pri pridobivanju vzdrževalnih dogodkov:', err)
+      throw err
+    }
+  }
+  
+  // **Vstavi nov vzdrževalni dogodek**
+export const insertMaintenance = async (data: {
+    title: string
+    description: string
+    from_date: string
+    to_date: string
+    note: string
+    ticket_id?: number | null
+  }) => {
+    const { title, description, from_date, to_date, note, ticket_id } = data
+  
+    try {
+      const result = await pool.query(
+        `INSERT INTO maintenance (title, description, from_date, to_date, note, ticket_id, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, NOW())
+         RETURNING *`,
+        [title, description, from_date, to_date, note, ticket_id || null]
+      )
+      return result.rows[0]
+    } catch (err) {
+      console.error('Napaka pri vstavljanju vzdrževalnega dogodka:', err)
+      throw err
+    }
+  }
+  
+// **Funkcija posodobi tabelo maintenance za poamezen maintenance_id**
+export const updateMaintenance = async (maintenance_id: number, title: string, description: string, from_date: string, to_date: string, note: string, ticket_id: number): Promise<void> => {
+    try {
+        await pool.query(
+            'UPDATE maintenance SET title = $1, description = $2, from_date = $3, to_date = $4, note = $5, ticket_id = $6, updated_at = NOW() WHERE maintenance_id = $7',
+            [title, description, from_date, to_date, note, ticket_id, maintenance_id]
+        );
+    } catch (error) {
+        console.error(`Napaka pri posodabljanju časa za ticket_id=${ticket_id}:`, error);
+        throw error;
+    }
+};
 
 export default pool;

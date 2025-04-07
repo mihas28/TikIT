@@ -563,7 +563,6 @@ export const uploadChatFile = async (ticketId: number, file: File, isPrivate: bo
 
 // **Funkcija za nalaganje ur uporabnika za posamezen ticket**
 export const fetchWorkLog = async (ticketId: string, userId: string) => {
-  console.log(ticketId, userId);
   try {
     const authStore = useAuthStore();
     const response = await axios.get(`http://localhost:3000/time-worked/${userId}/${ticketId}`, {
@@ -778,3 +777,43 @@ export const loadMyTicketById = async (user_id: string, ticket_id: string) => {
     throw error;
   }
 };
+
+// **Pridobi vse vzdrževalne dogodke za določen teden**
+export const getMaintenancesForWeek = async (weekStart: string) => {
+  const authStore = useAuthStore();
+  const response = await axios.get(`http://localhost:3000/maintenance/week?start=${weekStart}`, {
+    headers: {
+      Authorization: `Bearer ${authStore.accessToken}`,
+    },
+  })
+  return response.data
+}
+
+// **Dodaj nov vzdrževalni dogodek**
+export const addMaintenance = async (maintenance: any) => {
+  const authStore = useAuthStore()
+  const response = await axios.post('http://localhost:3000/maintenance', maintenance, {
+    headers: {
+      Authorization: `Bearer ${authStore.accessToken}`,
+    },
+  })
+  return response.data
+}
+
+// **Posodobi vzdrževanje za maintenance_id**
+export const updateMaintenance = async (maintenanceId: number, data: Record<string, any>) => {
+  try {
+    const authStore = useAuthStore()
+    const response = await axios.put(`http://localhost:3000/maintenance/${maintenanceId}`, data,
+      {
+        headers: {
+          Authorization: `Bearer ${authStore.accessToken}`,
+        },
+      }
+    )
+    return response.data;
+  } catch (error) {
+    console.error(`Napaka pri posodobitvi SLA breach za ticket ${maintenanceId}:`, error)
+    throw error
+  }
+}

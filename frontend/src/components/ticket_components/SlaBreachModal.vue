@@ -44,8 +44,11 @@ const submit = () => {
   z-index: 1050;
 }
 .modal-content {
-  width: 100%;
-  max-width: 500px;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 500px;
+  max-width: 90%;
 }
 
 .btn-primary {

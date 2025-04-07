@@ -70,93 +70,95 @@ onMounted(loadDetails);
         <span v-if="props.type === 'caller' || props.type === 'assignee' || props.type === 'additional'">
             <label >Uporabnik:</label>
             <br>
-            <input :value="details.first_name + ' ' + details.last_name" disabled />
+            <input class="form-control" :value="details.first_name + ' ' + details.last_name" disabled />
             <br>
             <label >Uporabniško ime:</label>
             <br>
-            <input :value="details.username" disabled />
+            <input class="form-control" :value="details.username" disabled />
             <br>
             <label >Vloga:</label>
             <br>
-            <input :value="details.role" disabled />
+            <input class="form-control" :value="details.role" disabled />
             <br>
             <label >Elektronski naslov:</label>
             <br>
-            <input :value="details.email" disabled />
+            <input class="form-control" :value="details.email" disabled />
             <br>
             <label >Telefonska številka:</label>
             <br>
-            <input :value="details.phone_number" disabled />
+            <input class="form-control" :value="details.phone_number" disabled />
         </span>
         <span v-if="props.type === 'company'">
             <label >Ime podjetja:</label>
             <br>
-            <input :value="details.company_name" disabled />
+            <input class="form-control" :value="details.company_name" disabled />
             <br>
             <label >Elektronski naslov:</label>
             <br>
-            <input :value="details.email" disabled />
+            <input class="form-control" :value="details.email" disabled />
             <br>
             <label >Telefonska številka:</label>
             <br>
-            <input :value="details.phone" disabled />
+            <input class="form-control" :value="details.phone" disabled />
             <br>
             <label >Naslov:</label>
             <br>
-            <input :value="details.street" disabled />
+            <input class="form-control" :value="details.street" disabled />
             <br>
             <label >Poštna številka in mesto:</label>
             <br>
-            <input :value="details.post_code + ' ' + details.city" disabled />
+            <input class="form-control" :value="details.post_code + ' ' + details.city" disabled />
             <br>
             <label >Država:</label>
             <br>
-            <input :value="details.country" disabled />
+            <input class="form-control" :value="details.country" disabled />
             <br>
             <label >Posebnosti:</label>
             <br>
-            <textarea disabled>{{ details.notes }}</textarea>
+            <textarea class="form-control" disabled>{{ details.notes }}</textarea>
         </span>
         <span v-if="props.type === 'group'">
             <label >Ime skupine:</label>
             <br>
-            <input :value="details.group_name" disabled />
+            <input class="form-control" :value="details.group_name" disabled />
             <br>
             <label >Elektronski naslov:</label>
             <br>
-            <input :value="details.email" disabled />       
+            <input class="form-control" :value="details.email" disabled />       
             <br>
             <label >Podrobnosti skupine:</label>
             <br>
-            <textarea disabled>{{ details.description }}</textarea>
+            <textarea class="form-control" disabled>{{ details.description }}</textarea>
         </span>
         <span v-if="props.type === 'contract'">
             <label >Kratek opis:</label>
             <br>
-            <input :value="details.short_description" disabled />
+            <input class="form-control" :value="details.short_description" disabled />
             <br>
             <label >Status:</label>
             <br>
-            <input :value="details.state" disabled />
+            <input class="form-control" :value="details.state" disabled />
             <br>
             <label >Začetek veljavnosti:</label>
             <br>
-            <input :value="formatDate(details.start_date)" disabled />
+            <input class="form-control" :value="formatDate(details.start_date)" disabled />
             <br>
             <label >Konec veljavnosti:</label>
             <br>
-            <input :value="formatDate(details.end_date)" disabled />
+            <input class="form-control" :value="formatDate(details.end_date)" disabled />
             <br>
             <label >Pogodba: </label>
             <i class="bi bi-file-earmark-pdf" @click="openContractFile(parseInt(props.id,10))"></i>
             <br>
             <label >Opis:</label>
             <br>
-            <textarea disabled >{{ details.description }}</textarea>
+            <textarea class="form-control" disabled >{{ details.description }}</textarea>
         </span>
       </div>
 
-      <button class="bt-close" @click="emit('close')">Zapri</button>
+      <div class="d-flex justify-content-end gap-2 mt-3">
+        <button class="bt-close" @click="emit('close')">Zapri</button>
+      </div>
     </div>
   </div>
 </template>
@@ -177,8 +179,9 @@ onMounted(loadDetails);
 .modal-content {
   background: white;
   padding: 20px;
-  border-radius: 5px;
-  width: 400px;
+  border-radius: 8px;
+  width: 500px;
+  max-width: 90%;
 }
 
 .bt-close {

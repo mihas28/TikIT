@@ -23,10 +23,12 @@ import { getCompany, verifyUser, registerUser, getAllCompanies,
   getAllCompaniesEssential, getAllContractsEssential, getAllUsersEssential, getAllGroupsEssential, getAllTicketsEssential,
   getTimeWorkedByTicket, updatePrimary, syncAdditionalResolvers, getNameLastNamebyUserId, resolveTicket, cancelTicket,
   updateSlaReason, reOpenTicket, putOnHoldTicket, getUserData, getTicketEssential, getIdTicketEssential, getMyTickets, 
-  getUserIdByEmail, getGroupEmailById, getEmailByTicketId, updateTicketTimestamp, autoCloseResolvedTickets } from './db/postgres';
+  getUserIdByEmail, getEmailByUserId, getGroupEmailById, getEmailByTicketId, updateTicketTimestamp, autoCloseResolvedTickets,
+  getTitleAndDescriptionFromTicket, getMaintenancesForWeek, insertMaintenance, updateMaintenance } from './db/postgres';
 import connectMongo, { getChatsByTicketId, createChat } from './db/mongo';
 import { authenticateJWT, generateAccessToken, generateRefreshToken, refreshToken, authorizeRoles } from './middleware/auth';
 import { check } from 'express-validator';
+import dayjs from 'dayjs';
 import { testing } from 'googleapis/build/src/apis/testing';
 import { text } from 'stream/consumers';
 
@@ -910,6 +912,19 @@ app.post('/tickets/create', authenticateJWT, authorizeRoles('admin', 'operator',
   
         const newTicket = await createTicket(title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id);
         createChat(newTicket.ticket_id, { type: "text", content: "Ticket z številko " + newTicket.ticket_id + " uspešno ustvarjen dne " + formatDate(new Date()), filename: ''}, false, "System");
+
+        const group_email = await getGroupEmailById(group_id);
+        if (!group_email) {
+            return console.error('Email skupine ni najden');
+        }
+        const from = await getEmailByUserId(caller_id);
+        if (!from) {
+            return console.error('Email uporabnika ni najden');
+        }
+
+        await sendEmail(group_email, "TikIT zahtevek ID: [" + newTicket.ticket_id + "] - " + title, "Ustvarjen je bil nov zahtevek z ID: " + newTicket.ticket_id + ".\n\n" + description);
+        await sendEmail(from, "TikIT zahtevek ID: [" + newTicket.ticket_id + "] - " + title, "Težavo bomo poskušali odpravit v najkrajšem možnem času.\nProsimo vas da odgorarjate v na to sporočilo." + "\n\n" + description);
+
         res.status(201).json(newTicket);
     } catch (error) {
         console.error('Napaka pri dodajanju zahtevka:', error);
@@ -996,6 +1011,15 @@ app.post('/time-worked', authenticateJWT, authorizeRoles('admin', 'operator'), a
           return res.status(400).json({ error: 'Manjkajoči podatki' });
       }
 
+      const { title, description } = await getTitleAndDescriptionFromTicket(ticket_id);
+      const from = await getEmailByUserId(user_id);
+
+      if (!from) {
+          return console.error('Email uporabnika ni najden');
+      }
+      
+      await sendEmail(from, "TikIT zahtevek ID: [" + ticket_id + "] - " + title, "Na zahtevek z ID: " + ticket_id + " ste bili dodeljeni kot " + primary ? "primarni" : "sekundarni" + " reševalec.\n\n" + description);
+
       const newTimeWorked = await createTimeWorked(user_id, ticket_id, 0, '', primary);
       res.status(201).json(newTimeWorked);
   } catch (error) {
@@ -1049,6 +1073,15 @@ app.put('/time-worked/update', authenticateJWT, authorizeRoles('admin', 'operato
         if (!updatePrimaryResolver) {
             return res.status(404).json({ error: 'Vnos delovnega časa ni najden' });
         }
+
+        const { title, description } = await getTitleAndDescriptionFromTicket(ticket_id);
+        const from = await getEmailByUserId(new_user_id.toString());
+
+        if (!from) {
+            return console.error('Email uporabnika ni najden');
+        }
+      
+        await sendEmail(from, "TikIT zahtevek ID: [" + ticket_id + "] - " + title, "Na zahtevek z ID: " + ticket_id + " ste bili dodeljeni kot novi primarni reševalec.\n\n" + description);
   
         res.status(200).json(updatePrimaryResolver);
     } catch (error) {
@@ -1068,6 +1101,18 @@ app.put('/time-worked/update', authenticateJWT, authorizeRoles('admin', 'operato
         }
 
         const result = await syncAdditionalResolvers(ticket_id, toRemove, toAdd);
+
+        const { title, description } = await getTitleAndDescriptionFromTicket(ticket_id);
+        for (const user_id of toAdd) {
+            const from = await getEmailByUserId(user_id.toString());
+
+            if (!from) {
+                console.error('Email uporabnika ni najden');
+                continue
+            }
+            await sendEmail(from, "TikIT zahtevek ID: [" + ticket_id + "] - " + title, "Na zahtevek z ID: " + ticket_id + " ste bili dodeljeni kot novi sekundarni reševalec.\n\n" + description);
+        }
+
         res.status(200).json(result);
     } catch (error) {
         console.error(`Napaka pri posodabljanju pomožnih reševalcev za ticket_id=${req.body.ticket_id}:`, error);
@@ -1134,9 +1179,84 @@ app.put('/ticket/:id/sla-accept-breach', authenticateJWT, authorizeRoles('admin'
       res.sendStatus(500)
     }
   })
-  
 
-  /////////////////////////////////////
+  // **Pridobi vsa vzdrževanja v obdobju enega tedna**
+  // @ts-ignore
+  app.get('/maintenance/week', authenticateJWT, authorizeRoles('admin', 'operator'), async (req, res) => {
+    const startParam = req.query.start as string
+
+    if (!startParam) {
+        return res.status(400).json({ error: 'Manjkajoč parameter "start"' })
+    }
+
+    const start = dayjs(startParam).startOf('week').add(1, 'day') // ponedeljek
+    const end = start.add(6, 'day').endOf('day') // nedelja
+
+    try {
+        const data = await getMaintenancesForWeek(start.toISOString(), end.toISOString())
+        res.json(data)
+    } catch (err) {
+        console.error('Napaka pri prodobivanju /maintenance/week:', err)
+        res.status(500).json({ error: 'Napaka pri pridobivanju vzdrževalnih dogodkov.' })
+    }
+  })
+  
+  // **Dodaj nov dogodek**
+  // @ts-ignore
+  app.post('/maintenance', authenticateJWT, authorizeRoles('admin', 'operator'), async (req, res) => {
+    const { title, description, from_date, to_date, note, ticket_id } = req.body
+  
+    if (!title || !from_date || !to_date) {
+      return res.status(400).json({ error: 'Manjkajoči obvezni podatki.' })
+    }
+  
+    try {
+      const inserted = await insertMaintenance({
+        title,
+        description,
+        from_date,
+        to_date,
+        note,
+        ticket_id
+      })
+      res.json(inserted)
+    } catch (err) {
+      console.error('Napaka pri ustvarjanju novega /maintenance:', err)
+      res.status(500).json({ error: 'Napaka pri vstavljanju vzdrževalnega dogodka.' })
+    }
+  })
+
+  // **Posodobi dogodek**
+  // @ts-ignore
+  app.put('/maintenance/:maintenance_id', authenticateJWT, authorizeRoles('admin', 'operator'), async (req, res) => {
+    const maintenance_id = parseInt(req.params.maintenance_id, 10)
+    if (isNaN(maintenance_id)) {
+      return res.status(400).json({ error: 'Neveljaven maintenance_id' })
+    }
+    const { title, description, from_date, to_date, note, ticket_id } = req.body;
+  
+    if (!title || !from_date || !to_date) {
+      return res.status(400).json({ error: 'Manjkajoči obvezni podatki.' })
+    }
+  
+    try {
+      const inserted = await updateMaintenance(
+        maintenance_id,
+        title,
+        description,
+        from_date,
+        to_date,
+        note,
+        ticket_id
+      )
+      res.json(inserted)
+    } catch (err) {
+      console.error('Napaka pri posodabljanju /maintenance:', err)
+      res.status(500).json({ error: 'Napaka pri vstavljanju vzdrževalnega dogodka.' })
+    }
+  })
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
   
 const connectedUsers: { [key: string]: string[] } = {}; // { userId: [ticket_id1, ticket_id2] }
 

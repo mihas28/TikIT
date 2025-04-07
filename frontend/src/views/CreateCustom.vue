@@ -57,7 +57,7 @@ const urgencyOptions = [
 
 const typeOptions = [
   { value: 'incident', label: 'Incident' },
-  { value: 'service request', label: 'Request' }
+  { value: 'service request', label: 'Zahteva' }
 ];
 
 // **Vidnost dropdowna**

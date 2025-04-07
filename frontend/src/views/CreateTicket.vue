@@ -110,7 +110,7 @@ const submitTicket = async () => {
           <label>Tip zahtevka</label>
           <select class="form-control" v-model="type">
             <option value="incident">Incident</option>
-            <option value="zahteva">Zahteva</option>
+            <option value="service request">Zahteva</option>
           </select>
           <small class="form-text text-muted">
             Incident je nepričakovana motnja, zahteva pa je npr. prošnja za dostop ali spremembo.

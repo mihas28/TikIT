@@ -8,6 +8,7 @@ import CreateTicket from '@/views/CreateTicket.vue';
 import AllTickets from '@/views/AllTickets.vue';
 import MyTickets from '@/views/MyTickets.vue';
 import AssignedTickets from '@/views/AssignedTickets.vue';
+import Maintenance from '@/views/Maintenance.vue';
 
 const routes = [
     { path: '/', redirect: '/login' }, // Privzeta stran je login
@@ -145,6 +146,18 @@ const routes = [
     { 
         path: '/my-tickets', 
         component: MyTickets,
+        beforeEnter: (to: any, from: any, next: any) => {
+            const authStore = useAuthStore();
+            if (!authStore.isAuthenticated) {
+                next('/login'); // Če ni prijavljen, ga preusmeri na login
+            } else {
+                next();
+            }
+        }
+    },
+    { 
+        path: '/maintenance-calendar', 
+        component: Maintenance,
         beforeEnter: (to: any, from: any, next: any) => {
             const authStore = useAuthStore();
             if (!authStore.isAuthenticated) {
