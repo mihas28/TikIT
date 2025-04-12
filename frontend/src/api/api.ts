@@ -396,6 +396,22 @@ export const loadTickets = async () => {
   }
 };
 
+// **Funkcija za pridobivanje vseh razrešenih ticketov**
+export const loadResolvedTickets = async () => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.get('http://localhost:3000/tickets/resolved', {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Napaka pri pridobivanju podatkov iz /tickets/resolved:', error);
+    throw error;
+  }
+};
+
 // **Funkcija za pridobivanje mojih dodeljenih ticketov**
 export const loadMaAssignedTickets = async (user_id: string) => {
   try {
@@ -539,7 +555,23 @@ export const getAllAssignees = async (ticket_id: string) => {
     });
     return response.data;
   } catch (error) {
-    console.error('Napaka pri pridobivanju podatkov iz /tickets:', error);
+    console.error('Napaka pri pridobivanju podatkov iz /tickets-time-worked:', error);
+    throw error;
+  }
+};
+
+// **Funkcija za pridobivanje vseh reševalcev ticketa tudi tistih, ki imajo samo ure vpisane**
+export const getAssignees = async (ticket_id: number) => {
+  try {
+    const authStore = useAuthStore();
+    const response = await axios.get(`http://localhost:3000/tickets-time-worked-all/${ticket_id}`, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Napaka pri pridobivanju podatkov iz /tickets-time-worked-all:', error);
     throw error;
   }
 };

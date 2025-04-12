@@ -519,10 +519,21 @@ export const updateGroup = async (group_id: number, group_name: string, descript
 // **Funkcija za pridobitev vseh zahtevkov**
 export const getAllTickets = async () => {
     try {
-        const result = await pool.query('SELECT t.ticket_id, t.title, CASE WHEN t.impact = 1 AND t.urgency = 1 THEN 1 WHEN t.impact = 2 AND t.urgency = 1 THEN 2 WHEN t.impact = 3 AND t.urgency = 1 THEN 3 WHEN t.impact = 1 AND t.urgency = 2 THEN 2 WHEN t.impact = 1 AND t.urgency = 3 THEN 3 WHEN t.impact = 2 AND t.urgency = 2 THEN 3 WHEN t.impact = 3 AND t.urgency = 2 THEN 4 WHEN t.impact = 2 AND t.urgency = 3 THEN 4 WHEN t.impact = 3 AND t.urgency = 3 THEN 4 END AS priority, t.state, t.type, t.created_at, CONCAT(caller.first_name, \' \', caller.last_name) AS caller, COALESCE(assigned.first_name || \' \' || assigned.last_name, \'(prazno)\') AS assigned_to, COALESCE(g.group_name, \'(prazno)\') AS assignment_group, comp.company_name FROM ticket t LEFT JOIN time_worked time ON time.ticket_id = t.ticket_id AND time.primary_resolver = true LEFT JOIN users assigned ON time.user_id = assigned.user_id LEFT JOIN assigment_group g ON assigned.group_id = g.group_id JOIN users caller ON t.caller_id = caller.user_id JOIN company comp ON caller.company_id = comp.company_id;');
+        const result = await pool.query('SELECT t.ticket_id, t.title, CASE WHEN t.impact = 1 AND t.urgency = 1 THEN 1 WHEN t.impact = 2 AND t.urgency = 1 THEN 2 WHEN t.impact = 3 AND t.urgency = 1 THEN 3 WHEN t.impact = 1 AND t.urgency = 2 THEN 2 WHEN t.impact = 1 AND t.urgency = 3 THEN 3 WHEN t.impact = 2 AND t.urgency = 2 THEN 3 WHEN t.impact = 3 AND t.urgency = 2 THEN 4 WHEN t.impact = 2 AND t.urgency = 3 THEN 4 WHEN t.impact = 3 AND t.urgency = 3 THEN 4 END AS priority, t.state, t.type, t.created_at, CONCAT(caller.first_name, \' \', caller.last_name) AS caller, COALESCE(assigned.first_name || \' \' || assigned.last_name, \'(prazno)\') AS assigned_to, COALESCE(g.group_name, \'(prazno)\') AS assignment_group, comp.company_name FROM ticket t LEFT JOIN time_worked time ON time.ticket_id = t.ticket_id AND time.primary_resolver = true LEFT JOIN users assigned ON time.user_id = assigned.user_id LEFT JOIN assigment_group g ON assigned.group_id = g.group_id JOIN users caller ON t.caller_id = caller.user_id JOIN company comp ON caller.company_id = comp.company_id ORDER BY t.created_at DESC;');
         return result.rows;
     } catch (error) {
         console.error('Napaka pri pridobivanju zahtevkov:', error);
+        throw error;
+    }
+};
+
+// **Funkcija za pridobitev vseh razrešenih zahtevkov**
+export const getAllResolvedTickets = async () => {
+    try {
+        const result = await pool.query('SELECT t.ticket_id, t.title, CASE WHEN t.impact = 1 AND t.urgency = 1 THEN 1 WHEN t.impact = 2 AND t.urgency = 1 THEN 2 WHEN t.impact = 3 AND t.urgency = 1 THEN 3 WHEN t.impact = 1 AND t.urgency = 2 THEN 2 WHEN t.impact = 1 AND t.urgency = 3 THEN 3 WHEN t.impact = 2 AND t.urgency = 2 THEN 3 WHEN t.impact = 3 AND t.urgency = 2 THEN 4 WHEN t.impact = 2 AND t.urgency = 3 THEN 4 WHEN t.impact = 3 AND t.urgency = 3 THEN 4 END AS priority, t.type, t.created_at, CONCAT(caller.first_name, \' \', caller.last_name) AS caller, COALESCE(assigned.first_name || \' \' || assigned.last_name, \'(prazno)\') AS assigned_to, COALESCE(g.group_name, \'(prazno)\') AS assignment_group, comp.company_name FROM ticket t LEFT JOIN time_worked time ON time.ticket_id = t.ticket_id AND time.primary_resolver = true LEFT JOIN users assigned ON time.user_id = assigned.user_id LEFT JOIN assigment_group g ON assigned.group_id = g.group_id JOIN users caller ON t.caller_id = caller.user_id JOIN company comp ON caller.company_id = comp.company_id AND t.state = \'resolved\' ORDER BY t.created_at DESC;');
+        return result.rows;
+    } catch (error) {
+        console.error('Napaka pri pridobivanju razrešenih zahtevkov:', error);
         throw error;
     }
 };
@@ -542,7 +553,7 @@ export const getAllTicketsEssential = async () => {
 export const getTicketEssential = async (user_id: number) => {
     try {
         const result = await pool.query(
-            'SELECT t.ticket_id, t.title, CASE WHEN t.impact = 1 AND t.urgency = 1 THEN 1 WHEN t.impact = 2 AND t.urgency = 1 THEN 2 WHEN t.impact = 3 AND t.urgency = 1 THEN 3 WHEN t.impact = 1 AND t.urgency = 2 THEN 2 WHEN t.impact = 1 AND t.urgency = 3 THEN 3 WHEN t.impact = 2 AND t.urgency = 2 THEN 3 WHEN t.impact = 3 AND t.urgency = 2 THEN 4 WHEN t.impact = 2 AND t.urgency = 3 THEN 4 WHEN t.impact = 3 AND t.urgency = 3 THEN 4 END AS priority, t.created_at, t.type, t.state FROM ticket t WHERE t.caller_id = $1',
+            'SELECT t.ticket_id, t.title, CASE WHEN t.impact = 1 AND t.urgency = 1 THEN 1 WHEN t.impact = 2 AND t.urgency = 1 THEN 2 WHEN t.impact = 3 AND t.urgency = 1 THEN 3 WHEN t.impact = 1 AND t.urgency = 2 THEN 2 WHEN t.impact = 1 AND t.urgency = 3 THEN 3 WHEN t.impact = 2 AND t.urgency = 2 THEN 3 WHEN t.impact = 3 AND t.urgency = 2 THEN 4 WHEN t.impact = 2 AND t.urgency = 3 THEN 4 WHEN t.impact = 3 AND t.urgency = 3 THEN 4 END AS priority, t.created_at, t.type, t.state FROM ticket t WHERE t.caller_id = $1 ORDER BY t.created_at DESC;',
             [user_id]
         );
         return result.rows;
@@ -556,7 +567,7 @@ export const getTicketEssential = async (user_id: number) => {
 export const getMyTickets = async (user_id: number) => {
     try {
         const result = await pool.query(
-            'SELECT t.ticket_id, t.title, t.created_at, CONCAT(caller.first_name, \' \', caller.last_name) AS caller, comp.company_name, CASE WHEN t.impact = 1 AND t.urgency = 1 THEN 1 WHEN t.impact = 2 AND t.urgency = 1 THEN 2 WHEN t.impact = 3 AND t.urgency = 1 THEN 3 WHEN t.impact = 1 AND t.urgency = 2 THEN 2 WHEN t.impact = 1 AND t.urgency = 3 THEN 3 WHEN t.impact = 2 AND t.urgency = 2 THEN 3 WHEN t.impact = 3 AND t.urgency = 2 THEN 4 WHEN t.impact = 2 AND t.urgency = 3 THEN 4 WHEN t.impact = 3 AND t.urgency = 3 THEN 4 END AS priority, t.state, t.type, g.group_name AS assignment_group, CASE WHEN tw.primary_resolver IS TRUE THEN \'Primarni\' WHEN tw.primary_resolver IS FALSE THEN \'Sekundarni\' END AS role FROM ticket t JOIN users caller ON t.caller_id = caller.user_id JOIN company comp ON caller.company_id = comp.company_id JOIN time_worked tw ON tw.ticket_id = t.ticket_id JOIN users assigned ON tw.user_id = assigned.user_id LEFT JOIN assigment_group g ON assigned.group_id = g.group_id WHERE tw.user_id = $1 AND tw.primary_resolver IS NOT NULL',
+            'SELECT t.ticket_id, t.title, t.created_at, CONCAT(caller.first_name, \' \', caller.last_name) AS caller, comp.company_name, CASE WHEN t.impact = 1 AND t.urgency = 1 THEN 1 WHEN t.impact = 2 AND t.urgency = 1 THEN 2 WHEN t.impact = 3 AND t.urgency = 1 THEN 3 WHEN t.impact = 1 AND t.urgency = 2 THEN 2 WHEN t.impact = 1 AND t.urgency = 3 THEN 3 WHEN t.impact = 2 AND t.urgency = 2 THEN 3 WHEN t.impact = 3 AND t.urgency = 2 THEN 4 WHEN t.impact = 2 AND t.urgency = 3 THEN 4 WHEN t.impact = 3 AND t.urgency = 3 THEN 4 END AS priority, t.state, t.type, g.group_name AS assignment_group, CASE WHEN tw.primary_resolver IS TRUE THEN \'Primarni\' WHEN tw.primary_resolver IS FALSE THEN \'Sekundarni\' END AS role FROM ticket t JOIN users caller ON t.caller_id = caller.user_id JOIN company comp ON caller.company_id = comp.company_id JOIN time_worked tw ON tw.ticket_id = t.ticket_id JOIN users assigned ON tw.user_id = assigned.user_id LEFT JOIN assigment_group g ON assigned.group_id = g.group_id WHERE tw.user_id = $1 AND tw.primary_resolver IS NOT NULL ORDER BY t.created_at DESC;',
             [user_id]
         );
         return result.rows;
@@ -570,7 +581,7 @@ export const getMyTickets = async (user_id: number) => {
 export const getIdTicketEssential = async (user_id: number, ticket_id: number) => {
     try {
         const result = await pool.query(
-            'SELECT t.ticket_id, t.title, t.description, CASE WHEN t.impact = 1 AND t.urgency = 1 THEN 1 WHEN t.impact = 2 AND t.urgency = 1 THEN 2 WHEN t.impact = 3 AND t.urgency = 1 THEN 3 WHEN t.impact = 1 AND t.urgency = 2 THEN 2 WHEN t.impact = 1 AND t.urgency = 3 THEN 3 WHEN t.impact = 2 AND t.urgency = 2 THEN 3 WHEN t.impact = 3 AND t.urgency = 2 THEN 4 WHEN t.impact = 2 AND t.urgency = 3 THEN 4 WHEN t.impact = 3 AND t.urgency = 3 THEN 4 END AS priority, t.created_at, t.updated_at, t.resolved_at, t.type, t.state, c.company_name, CONCAT(u.first_name, \' \', u.last_name) AS caller, COALESCE(ur.first_name || \' \' || ur.last_name, \'(prazno)\') AS primary_resolver FROM ticket t LEFT JOIN users u ON t.caller_id = u.user_id LEFT JOIN company c ON u.company_id = c.company_id LEFT JOIN time_worked tw ON tw.ticket_id = t.ticket_id AND tw.primary_resolver = true LEFT JOIN users ur ON tw.user_id = ur.user_id WHERE t.caller_id = $1 AND t.ticket_id = $2',
+            'SELECT t.ticket_id, t.title, t.description, CASE WHEN t.impact = 1 AND t.urgency = 1 THEN 1 WHEN t.impact = 2 AND t.urgency = 1 THEN 2 WHEN t.impact = 3 AND t.urgency = 1 THEN 3 WHEN t.impact = 1 AND t.urgency = 2 THEN 2 WHEN t.impact = 1 AND t.urgency = 3 THEN 3 WHEN t.impact = 2 AND t.urgency = 2 THEN 3 WHEN t.impact = 3 AND t.urgency = 2 THEN 4 WHEN t.impact = 2 AND t.urgency = 3 THEN 4 WHEN t.impact = 3 AND t.urgency = 3 THEN 4 END AS priority, t.created_at, t.updated_at, t.resolved_at, t.type, t.state, c.company_name, CONCAT(u.first_name, \' \', u.last_name) AS caller, COALESCE(ur.first_name || \' \' || ur.last_name, \'(prazno)\') AS primary_resolver FROM ticket t LEFT JOIN users u ON t.caller_id = u.user_id LEFT JOIN company c ON u.company_id = c.company_id LEFT JOIN time_worked tw ON tw.ticket_id = t.ticket_id AND tw.primary_resolver = true LEFT JOIN users ur ON tw.user_id = ur.user_id WHERE t.caller_id = $1 AND t.ticket_id = $2;',
             [user_id, ticket_id]
         );
         return result.rows;
@@ -602,15 +613,16 @@ export const createTicket = async (
     caller_id: number,
     parent_ticket_id: number | null,
     group_id: number,
-    contract_id: number
+    contract_id: number,
+    accepted_at: string | null
 ) => {
     try {
         const result = await pool.query(
             `INSERT INTO ticket 
-            (title, description, impact, urgency, state, type, created_at, updated_at, caller_id, parent_ticket_id, group_id, contract_id) 
-            VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), $7, $8, $9, $10) 
+            (title, description, impact, urgency, state, type, created_at, updated_at, caller_id, parent_ticket_id, group_id, contract_id, accepted_at) 
+            VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), $7, $8, $9, $10, $11) 
             RETURNING ticket_id`,
-            [title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id]
+            [title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id, accepted_at]
         );
 
         return { ticket_id: result.rows[0].ticket_id };
@@ -672,6 +684,20 @@ export const getTimeWorkedByTicket = async (ticket_id: number, primary_resolver:
         return result.rows || [];
     } catch (error) {
         console.error(`Napaka pri pridobivanju delovnega časa za ticket_id=${ticket_id}:`, error);
+        throw error;
+    }
+};
+
+// **Funkcija za pridobitev vseh ki so kadarkoli vpisali ure na podlagi ticket_id**
+export const getTimeWorkedByTicketAll = async (ticket_id: number) => {
+    try {
+        const result = await pool.query(
+            'SELECT t.*, CONCAT(u.first_name, \' \', u.last_name) AS resolver, u.email AS email FROM time_worked t, users u WHERE ticket_id = $1 AND t.user_id = u.user_id', 
+            [ticket_id]
+        );
+        return result.rows || [];
+    } catch (error) {
+        console.error(`Napaka pri pridobivanju reševalcev za ticket_id=${ticket_id}:`, error);
         throw error;
     }
 };

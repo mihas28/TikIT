@@ -518,7 +518,14 @@ const saveChanges = async () => {
         }
       }
       
-      ticket.value.ticket.accepted_at = new Date().toISOString();
+      const now = new Date()
+      const localISO = now.getFullYear()
+        + '-' + String(now.getMonth() + 1).padStart(2, '0')
+        + '-' + String(now.getDate()).padStart(2, '0')
+        + 'T' + String(now.getHours()).padStart(2, '0')
+        + ':' + String(now.getMinutes()).padStart(2, '0')
+        + ':' + String(now.getSeconds()).padStart(2, '0')
+      ticket.value.ticket.accepted_at = localISO;
 
       const text = "Zahtevek "+ ticketId.value +" je bil sprejet v izvedbo";
       // Dodaj zapis v komunikacijo

@@ -24,7 +24,8 @@ import { getCompany, verifyUser, registerUser, getAllCompanies,
   getTimeWorkedByTicket, updatePrimary, syncAdditionalResolvers, getNameLastNamebyUserId, resolveTicket, cancelTicket,
   updateSlaReason, reOpenTicket, putOnHoldTicket, getUserData, getTicketEssential, getIdTicketEssential, getMyTickets, 
   getUserIdByEmail, getEmailByUserId, getGroupEmailById, getEmailByTicketId, updateTicketTimestamp, autoCloseResolvedTickets,
-  getTitleAndDescriptionFromTicket, getMaintenancesForWeek, insertMaintenance, updateMaintenance } from './db/postgres';
+  getTitleAndDescriptionFromTicket, getMaintenancesForWeek, insertMaintenance, updateMaintenance, getAllResolvedTickets,
+  getTimeWorkedByTicketAll } from './db/postgres';
 import connectMongo, { getChatsByTicketId, createChat } from './db/mongo';
 import { authenticateJWT, generateAccessToken, generateRefreshToken, refreshToken, authorizeRoles } from './middleware/auth';
 import { check } from 'express-validator';
@@ -748,6 +749,17 @@ app.get('/tickets', authenticateJWT, authorizeRoles('admin', 'operator'), async 
   }
 });
 
+// **Pridobitev vseh razrešenih zahtevkov**
+app.get('/tickets/resolved', authenticateJWT, authorizeRoles('admin', 'operator'), async (req: Request, res: Response) => {
+    try {
+        const tickets = await getAllResolvedTickets();
+        res.status(200).json(tickets);
+    } catch (error) {
+        console.error('Napaka pri pridobivanjuc razrešenih zahtevkov:', error);
+        res.status(500).json({ error: 'Napaka pri dostopu do podatkov razrešenih zahtevkov' });
+    }
+  });
+
 // **Pridobitev samo naslova in ticket id-ja vseh zahtevkov**
 app.get('/tickets/essential', authenticateJWT, authorizeRoles('admin', 'operator'), async (req: Request, res: Response) => {
     try {
@@ -862,6 +874,24 @@ app.get('/tickets-time-worked/:ticket_id', authenticateJWT, authorizeRoles('admi
     }
   });
 
+  // **Pridobitev vseh ki so vpisali ure na podlagi ticket_id**
+// @ts-ignore
+app.get('/tickets-time-worked-all/:ticket_id', authenticateJWT, authorizeRoles('admin', 'operator'), async (req: Request, res: Response) => {
+    try {
+        const ticket_id = parseInt(req.params.ticket_id, 10);
+        if (isNaN(ticket_id)) {
+            return res.status(400).json({ error: 'Neveljaven ticket_id' });
+        }
+  
+        const all = await getTimeWorkedByTicketAll(ticket_id);
+  
+        res.status(200).json(all);
+    } catch (error) {
+        console.error(`Napaka pri pridobivanju zahtevka ID=${req.params.ticket_id}:`, error);
+        res.status(500).json({ error: 'Napaka pri dostopu do zahtevka' });
+    }
+  });
+
 // **Dodajanje novega zahtevka po meri**
 // @ts-ignore
 app.post('/tickets', authenticateJWT, authorizeRoles('admin', 'operator'), async (req: Request, res: Response) => {
@@ -872,7 +902,9 @@ app.post('/tickets', authenticateJWT, authorizeRoles('admin', 'operator'), async
           return res.status(400).json({ error: 'Manjkajoči podatki' });
       }
 
-      const newTicket = await createTicket(title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id);
+      const accepted_at = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+      const newTicket = await createTicket(title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id, accepted_at);
       createChat(newTicket.ticket_id, { type: "text", content: "Ticket z številko " + newTicket.ticket_id + " uspešno ustvarjen dne " + formatDate(new Date()), filename: ''}, false, "system");
       res.status(201).json(newTicket);
   } catch (error) {
@@ -897,7 +929,7 @@ export const getImpactAndUrgencyFromPriority = (priority: string): { impact: str
     }
   }  
 
-// **Dodajanje novega zahtevka po meri**
+// **Dodajanje novega zahtevka**
 // @ts-ignore
 app.post('/tickets/create', authenticateJWT, authorizeRoles('admin', 'operator', 'user'), async (req: Request, res: Response) => {
     try {
@@ -905,12 +937,13 @@ app.post('/tickets/create', authenticateJWT, authorizeRoles('admin', 'operator',
 
         const {impact, urgency} = getImpactAndUrgencyFromPriority(priority);
         const state = 'new';
+        const accepted_at = null;
   
         if (!title || !description || !impact || !urgency || !state || !type || !caller_id || !group_id || !contract_id) {
             return res.status(400).json({ error: 'Manjkajoči podatki' });
         }
   
-        const newTicket = await createTicket(title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id);
+        const newTicket = await createTicket(title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id, accepted_at);
         createChat(newTicket.ticket_id, { type: "text", content: "Ticket z številko " + newTicket.ticket_id + " uspešno ustvarjen dne " + formatDate(new Date()), filename: ''}, false, "System");
 
         const group_email = await getGroupEmailById(group_id);
@@ -1441,6 +1474,7 @@ const oAuth2Client = new google.auth.OAuth2(
         const group_id = additional_info.group_id;
         const contract_id = additional_info.contract_id;
         const parent_ticket_id = null;
+        const accepted_at = null;
         const group_email = await getGroupEmailById(group_id);
   
         if (!group_email) {
@@ -1451,7 +1485,7 @@ const oAuth2Client = new google.auth.OAuth2(
             return console.error('Manjkajoči podatki');
         }
   
-        const newTicket = await createTicket(title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id);
+        const newTicket = await createTicket(title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id, accepted_at);
         const text = "Ticket z številko " + newTicket.ticket_id + " uspešno ustvarjen dne " + formatDate(new Date()) + "."
         createChat(newTicket.ticket_id, { type: "text", content: text, filename: ''}, false, "System");
 

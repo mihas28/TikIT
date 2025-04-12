@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { loadTickets } from '@/api/api';
+import { loadResolvedTickets } from '@/api/api';
 
 // **Definicija podatkov**
 interface Ticket {
@@ -11,7 +11,6 @@ interface Ticket {
   caller: string;
   company_name: string;
   priority: string;
-  state: string;
   assignment_group: string;
   assigned_to: string;
   type: string;
@@ -28,7 +27,7 @@ const isLoading = ref(false);
 
 onMounted(async () => {
   isLoading.value = true;
-  tickets.value = await loadTickets();
+  tickets.value = await loadResolvedTickets();
   isLoading.value = false;
 });
 
@@ -44,15 +43,6 @@ const priorityMap: { [key: string]: { text: string; color: string } } = {
   "2": { text: "Visoka", color: "orange" },
   "3": { text: "Srednja", color: "green" },
   "4": { text: "Nizka", color: "green" }
-};
-
-const stateMap: { [key: string]: { text: string; icon: string } } = {
-  "new": { text: "Novo", icon: "bi bi-circle text-secondary" }, // Siva kroglica
-  "open": { text: "Odprto", icon: "bi bi-arrow-repeat text-primary" }, // Modra ponovitev
-  "awaiting info": { text: "V čakanju", icon: "bi bi-hourglass-split text-warning" }, // Rumena ura
-  "resolved": { text: "Rešeno", icon: "bi bi-check-circle text-success" }, // Zelena kljukica
-  "closed": { text: "Zaključeno", icon: "bi bi-check-circle-fill text-secondary" }, // Siva polna kljukica
-  "cancelled": { text: "Preklicano", icon: "bi bi-x-circle text-danger" } // Rdeč križec
 };
 
 const filteredTickets = computed(() => {
@@ -87,15 +77,13 @@ const filteredTickets = computed(() => {
   return sortedTickets.filter(ticket => {
     const formattedDate = formatDate(ticket.created_at);
     const priorityText = priorityMap[ticket.priority]?.text || ticket.priority;
-    const stateText = stateMap[ticket.state]?.text || ticket.state;
 
     return (
       Object.values(ticket).some(value =>
         String(value).toLowerCase().includes(searchQuery.value.toLowerCase())
       ) ||
       formattedDate.includes(searchQuery.value) ||
-      priorityText.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      stateText.toLowerCase().includes(searchQuery.value.toLowerCase())
+      priorityText.toLowerCase().includes(searchQuery.value.toLowerCase())
     );
   });
 });
@@ -123,9 +111,9 @@ const sortBy = (column: string) => {
   }
 };
 
-// **Preusmeritev na podrobnosti ticketov**
-const openTicket = (ticketId: number) => {
-  router.push({ name: 'TicketDetails', params: { id: ticketId } });
+// **Preusmeritev na podrobnosti in generiranje poročila**
+const openReport = (ticketId: number) => {
+  router.push({ name: 'TicketReport', params: { id: ticketId } });
 };
 
 // **Skrajšanje dolžine besedila**
@@ -137,12 +125,12 @@ const shortenText = (text: string, maxLength: number = 70) =>
 <template>
 
     <div v-if="isLoading" class="content-wrapper">
-      <p>Nalaganje pogleda vse zahtevke...</p>
+      <p>Nalaganje pogleda za pogled zahtevkov v razrešenem stanju...</p>
     </div>
 
     <div v-if="!isLoading" class="content-wrapper">
-      <h3>Seznam zahtevkov</h3>
-      <input type="text" v-model="searchQuery" placeholder="Išči zahtevke..." class="search-box" />
+      <h3>Seznam razrešenih zahtevkov</h3>
+      <input type="text" v-model="searchQuery" placeholder="Išči razrešene zahtevke..." class="search-box" />
   
       <table>
         <thead>
@@ -165,9 +153,6 @@ const shortenText = (text: string, maxLength: number = 70) =>
             <th @click="sortBy('priority')">
               Prioriteta <span v-if="sortColumn === 'priority'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
             </th>
-            <th @click="sortBy('state')">
-              Stanje <span v-if="sortColumn === 'state'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
-            </th>
             <th @click="sortBy('assignment_group')">
               Skupina <span v-if="sortColumn === 'assignment_group'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
             </th>
@@ -180,7 +165,7 @@ const shortenText = (text: string, maxLength: number = 70) =>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="ticket in paginatedTickets" :key="ticket.ticket_id" @click="openTicket(Number(ticket.ticket_id))">
+          <tr v-for="ticket in paginatedTickets" :key="ticket.ticket_id" @click="openReport(Number(ticket.ticket_id))">
             <td>{{ shortenText(ticket.ticket_id) }}</td>
             <td>{{ shortenText(ticket.title) }}</td>
             <td>{{ formatDate(ticket.created_at) }}</td>
@@ -189,12 +174,6 @@ const shortenText = (text: string, maxLength: number = 70) =>
             <td>
               <span :style="{ color: priorityMap[ticket.priority]?.color || 'black' }">
                 {{ priorityMap[ticket.priority]?.text || ticket.priority }}
-              </span>
-            </td>
-            <td>
-              <span>
-                <i :class="stateMap[ticket.state]?.icon || 'bi bi-question-circle text-secondary'"></i>
-                {{ stateMap[ticket.state]?.text || ticket.state }}
               </span>
             </td>
             <td>{{ shortenText(ticket.assignment_group) }}</td>
