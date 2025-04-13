@@ -85,7 +85,7 @@ const initializeDatabases = async () => {
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-app.post('/refresh', async (req: Request, res: Response) => {
+app.post('/refresh', authenticateJWT, authorizeRoles('admin', 'operator', 'user'), async (req: Request, res: Response) => {
     refreshToken(req, res);
 });
 

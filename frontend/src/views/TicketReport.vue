@@ -112,6 +112,7 @@ const totalHours = () => {
         <p><strong>Vrsta:</strong> <span v-if="ticket.type = 'service request'">zahtevek</span><span v-else>{{ ticket.type }}</span></p>
         <p><strong>Vpliv:</strong> {{ ticket.impact }}</p>
         <p><strong>Nujnost:</strong> {{ ticket.urgency }}</p>
+        <p v-if="ticket.parent_ticket_id"><strong>Starševski zahtevek:</strong> #{{ ticket.parent_ticket_id }}</p>
         <p><strong>Ustvarjen:</strong> {{ formatDate(ticket.created_at) }}</p>
         <p><strong>Zaključen:</strong> {{ formatDate(ticket.resolved_at) }}</p>
       </div>
