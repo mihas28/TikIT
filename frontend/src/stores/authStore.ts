@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { jwtDecode } from 'jwt-decode';
 import axios from 'axios';
+import router from '../router'; 
 
 interface DecodedToken {
     userId: number;
@@ -52,6 +53,8 @@ export const useAuthStore = defineStore('auth', {
 
             this.stopAutoRefresh();
             this.stopInactivityTracking();
+
+            router.push('/login');
         },
         async refreshAccessToken() {
             try {
