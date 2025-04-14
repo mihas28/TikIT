@@ -17,6 +17,7 @@ interface Contract {
   end_date: string;
   company_name: string;
   contract_file: string;
+  state: string;
 }
 
 const contracts = ref<Contract[]>([]);
@@ -95,6 +96,7 @@ const openAddModal = () => {
       <thead>
         <tr>
           <th @click="sortBy('short_description')">Kratek opis {{ sortKey === 'short_description' ? (sortOrder === 'asc' ? '▲' : '▼') : '' }}</th>
+          <th @click="sortBy('state')">Status {{ sortKey === 'state' ? (sortOrder === 'asc' ? '▲' : '▼') : '' }}</th>
           <th @click="sortBy('start_date')">Začetek {{ sortKey === 'start_date' ? (sortOrder === 'asc' ? '▲' : '▼') : '' }}</th>
           <th @click="sortBy('end_date')">Konec {{ sortKey === 'end_date' ? (sortOrder === 'asc' ? '▲' : '▼') : '' }}</th>
           <th @click="sortBy('company_name')">Podjetje {{ sortKey === 'company_name' ? (sortOrder === 'asc' ? '▲' : '▼') : '' }}</th>
@@ -105,6 +107,7 @@ const openAddModal = () => {
       <tbody>
         <tr v-for="contract in sortedContracts" :key="contract.contract_id">
           <td>{{ contract.short_description }}</td>
+          <td>{{ contract.state }}</td>
           <td>{{ formatDate(contract.start_date) }}</td>
           <td>{{ formatDate(contract.end_date) }}</td>
           <td>{{ contract.company_name }}</td>

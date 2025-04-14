@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 import axios from 'axios';
@@ -10,6 +10,12 @@ const authStore = useAuthStore();
 const username = ref('');
 const password = ref('');
 const errorMessage = ref('');
+
+onMounted(() => {
+  if (authStore.accessToken && authStore.isAccessTokenValid()) {
+    router.push('/dashboard');
+  }
+})
 
 const login = async () => {
     try {

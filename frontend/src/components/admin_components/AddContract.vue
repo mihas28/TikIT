@@ -51,6 +51,11 @@ const addNewContract = async () => {
     return;
   }
 
+  if (newContract.value.start_date > newContract.value.end_date) {
+    error.value = 'Datum začetka ne more biti kasnejši od datuma konca!';
+    return;
+  }
+
   isLoading.value = true;
   error.value = null;
 

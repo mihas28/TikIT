@@ -63,6 +63,11 @@ const saveChanges = async () => {
     return;
   }
 
+  if (props.contract.end_date > props.contract.start_date) {
+    errorMessage.value = 'Datum začetka ne more biti kasnejši od datuma konca!';
+    return;
+  }
+
   try {
     const selectedCompany = companies.value.find(c => c.company_id === props.contract.company_id);
     if (selectedCompany) props.contract.company_name = selectedCompany.company_name;

@@ -18,6 +18,9 @@ export const useAuthStore = defineStore('auth', {
         refreshToken: localStorage.getItem('refreshToken') || '',
         refreshInterval: null as ReturnType<typeof setInterval> | null,
         inactivityTimeout: null as ReturnType<typeof setTimeout> | null,
+        _inactivityEvents: [] as string[],
+        _inactivityHandler: null as EventListener | null,
+
     }),
     getters: {
         isAuthenticated: (state) => !!state.accessToken,
@@ -88,27 +91,48 @@ export const useAuthStore = defineStore('auth', {
                 this.refreshInterval = null;
             }
         },
+        resetInactivityTimer() {
+            if (this.inactivityTimeout) 
+                clearTimeout(this.inactivityTimeout);
+          
+            const timeoutMs = INACTIVITY_TIMEOUT_MINUTES * 60 * 1000
+            this.inactivityTimeout = setTimeout(() => {
+              this.logout()
+            }, timeoutMs)
+        },
         startInactivityTracking() {
             this.stopInactivityTracking();
 
-            const resetTimer = () => {
-                clearTimeout(this.inactivityTimeout!);
-                this.inactivityTimeout = setTimeout(() => {
-                    this.logout();
-                }, INACTIVITY_TIMEOUT_MINUTES * 60 * 1000); // n minut brez aktivnosti
-            };
+            this._inactivityEvents = ['mousemove', 'keydown', 'click'];
+            this._inactivityHandler = this.resetInactivityTimer.bind(this);
 
-            ['mousemove', 'keydown', 'click'].forEach((event) => {
-                window.addEventListener(event, resetTimer);
-            });
+            this._inactivityEvents.forEach(event => {
+                window.addEventListener(event, this._inactivityHandler!)
+            })
 
-            resetTimer();
+            this.resetInactivityTimer();
         },
         stopInactivityTracking() {
             if (this.inactivityTimeout) {
                 clearTimeout(this.inactivityTimeout);
                 this.inactivityTimeout = null;
             }
+
+            if (this._inactivityEvents && this._inactivityHandler) {
+                this._inactivityEvents.forEach(event => {
+                  window.removeEventListener(event, this._inactivityHandler!)
+                })
+            } 
         },
+        isAccessTokenValid(): boolean {
+            if (!this.accessToken) return false
+            try {
+              const decoded: DecodedToken = jwtDecode(this.accessToken)
+              const currentTime = Math.floor(Date.now() / 1000)
+              return decoded.exp > currentTime
+            } catch {
+              return false
+            }
+        },          
     },
 });

@@ -994,7 +994,7 @@ export const getGroupEmailById = async (group_id: number): Promise<string | null
 export const updateTicketTimestamp = async (ticket_id: number): Promise<void> => {
     try {
         await pool.query(
-            'UPDATE ticket SET updated_at = NOW() WHERE ticket_id = $1',
+            'UPDATE ticket SET updated_at = NOW(), state = CASE WHEN state = \'awaiting info\' THEN \'open\' ELSE state END WHERE ticket_id = $1;',
             [ticket_id]
         );
     } catch (error) {
@@ -1015,6 +1015,35 @@ export const autoCloseResolvedTickets = async (): Promise<void> => {
         `);
     } catch (error) {
         console.error('Napaka pri samodejnem zapiranju resolved ticketov:', error);
+        throw error;
+    }
+};
+
+// **Funkcija posodobi stanje pogodb glede na datume, le če se dejansko spremeni**
+export const updateContractStates = async (): Promise<void> => {
+    try {
+        // 1. Pogodbe, ki se še niso začele → 'draft'
+        await pool.query(`
+            UPDATE contract
+            SET state = 'draft', updated_at = NOW()
+            WHERE start_date > CURRENT_DATE AND state != 'draft';
+        `);
+
+        // 2. Pogodbe, ki so trenutno aktivne → 'active'
+        await pool.query(`
+            UPDATE contract
+            SET state = 'active', updated_at = NOW()
+            WHERE start_date <= CURRENT_DATE AND end_date >= CURRENT_DATE AND state != 'active';
+        `);
+
+        // 3. Pogodbe, ki so že pretekle → 'expired'
+        await pool.query(`
+            UPDATE contract
+            SET state = 'expired', updated_at = NOW()
+            WHERE end_date < CURRENT_DATE AND state != 'expired';
+        `);
+    } catch (error) {
+        console.error('Napaka pri samodejni posodobitvi stanja pogodb:', error);
         throw error;
     }
 };

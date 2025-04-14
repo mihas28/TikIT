@@ -1,10 +1,24 @@
 <script setup lang="ts">
 import { useAuthStore } from '@/stores/authStore';
 import Sidebar from './components/Sidebar.vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
+import { onMounted } from 'vue'
 
 const authStore = useAuthStore();
 const route = useRoute();
+const router = useRouter();
+
+onMounted(() => { // Če je stran ponovno naložena
+  router.isReady().then(() => {
+    const isReload = (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming)?.type === 'reload'
+    const path = router.currentRoute.value.path
+
+    if (isReload && path !== '/login') {
+      authStore.startAutoRefresh();
+      authStore.startInactivityTracking();
+    }
+  })
+})
 </script>
 
 <template>

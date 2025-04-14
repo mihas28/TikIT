@@ -25,7 +25,7 @@ import { getCompany, verifyUser, registerUser, getAllCompanies,
   updateSlaReason, reOpenTicket, putOnHoldTicket, getUserData, getTicketEssential, getIdTicketEssential, getMyTickets, 
   getUserIdByEmail, getEmailByUserId, getGroupEmailById, getEmailByTicketId, updateTicketTimestamp, autoCloseResolvedTickets,
   getTitleAndDescriptionFromTicket, getMaintenancesForWeek, insertMaintenance, updateMaintenance, getAllResolvedTickets,
-  getTimeWorkedByTicketAll } from './db/postgres';
+  getTimeWorkedByTicketAll, updateContractStates } from './db/postgres';
 import connectMongo, { getChatsByTicketId, createChat } from './db/mongo';
 import { authenticateJWT, generateAccessToken, generateRefreshToken, refreshToken, authorizeRoles } from './middleware/auth';
 import { check } from 'express-validator';
@@ -1692,7 +1692,9 @@ initializeDatabases().then(() => {
       setInterval(checkNewEmails, 60 * 1000);
       // Zagon na vsakih pol ure - posodabljanje statusa ticketa v stanje closed po 14 dnevih (31.3 referenca ticket: 74)
       setInterval(autoCloseResolvedTickets, 30 * 60 * 1000);
-
+      // Zagon na vsakih 2 uri - posodabljanje statusa contractov
+      setInterval(updateContractStates, 120 * 60 * 1000);
+      
       console.log(`Strežnik teče na http://localhost:${PORT}`);
     });
 });

@@ -10,6 +10,8 @@ import MyTickets from '@/views/MyTickets.vue';
 import AssignedTickets from '@/views/AssignedTickets.vue';
 import Maintenance from '@/views/Maintenance.vue';
 import Report from '@/views/Report.vue';
+import TicketReport from '@/views/TicketReport.vue';
+import NotFound from '@/views/NotFound.vue';
 
 const routes = [
     { path: '/', redirect: '/login' }, // Privzeta stran je login
@@ -183,7 +185,8 @@ const routes = [
     { 
         path: '/report/:id', 
         name: 'TicketReport',
-        component: () => import('@/views/TicketReport.vue'),
+        component: TicketReport,
+    
         beforeEnter: (to: any, from: any, next: any) => {
             const authStore = useAuthStore();
             if (!authStore.isAuthenticated) {
@@ -193,6 +196,19 @@ const routes = [
             }
         }
     },
+    {
+        path: '/:pathMatch(.*)*',
+        name: 'NotFound',
+        component: NotFound,
+        beforeEnter: (to: any, from: any, next: any) => {
+            const authStore = useAuthStore();
+            if (!authStore.isAuthenticated) {
+                next('/login'); // Če ni prijavljen, ga preusmeri na login
+            } else {
+                next();
+            }
+        }
+    }
 ];
 
 const router = createRouter({
