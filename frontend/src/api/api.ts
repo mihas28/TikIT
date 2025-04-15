@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useAuthStore } from '@/stores/authStore';
+import { ca } from 'date-fns/locale';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -849,3 +850,41 @@ export const updateMaintenance = async (maintenanceId: number, data: Record<stri
     throw error
   }
 }
+
+// **Pridobivanje podrobnih podatkov o trenutnem uporabniku**
+export const fetchCurrentUserInfo = async (user_id: number) => {
+  try
+  {
+    const authStore = useAuthStore()
+    const response = await axios.get(`http://localhost:3000/user/info/${user_id}`, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+      },
+    })
+    return response.data
+  } catch (error) {
+    console.error(`Napaka pri pridobivanju podatkov za uporabnika ${user_id}:`, error)
+    throw error
+  }
+}
+
+// **Menjava gesla na podlagi obstoječega gesla**
+export const changePassword = async (user_id: number, old_password: string, new_password: string) => {
+  try
+  {
+    const authStore = useAuthStore()
+    const response = await axios.put(`http://localhost:3000/users/password/user/reset/${user_id}`, {
+      old_password,
+      new_password,
+    }, {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+      },
+    })
+    return response.data
+  } catch (error) {
+    console.error(`Napaka pri posodabljanju gesla za uporabnika ${user_id}:`, error)
+    throw error
+  }
+}
+

@@ -12,6 +12,7 @@ import Maintenance from '@/views/Maintenance.vue';
 import Report from '@/views/Report.vue';
 import TicketReport from '@/views/TicketReport.vue';
 import NotFound from '@/views/NotFound.vue';
+import Settings from '@/views/Settings.vue';
 
 const routes = [
     { path: '/', redirect: '/login' }, // Privzeta stran je login
@@ -187,6 +188,19 @@ const routes = [
         name: 'TicketReport',
         component: TicketReport,
     
+        beforeEnter: (to: any, from: any, next: any) => {
+            const authStore = useAuthStore();
+            if (!authStore.isAuthenticated) {
+                next('/login'); // Če ni prijavljen, ga preusmeri na login
+            } else {
+                next();
+            }
+        }
+    },
+    { 
+        path: '/settings', 
+        name: 'Settings',
+        component: Settings,
         beforeEnter: (to: any, from: any, next: any) => {
             const authStore = useAuthStore();
             if (!authStore.isAuthenticated) {

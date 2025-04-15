@@ -18,8 +18,8 @@ interface AuthenticatedRequest extends Request {
 import dotenv from 'dotenv';
 import { getCompany, verifyUser, registerUser, getAllCompanies, 
   getCompanyById, createCompany, updateCompany, getAllContracts, getContractById, createContract, updateContract, getAllUsers, 
-  getUserById, updateUser, updatePasswordWithOld, updatePasswordWithoutOld, getAllGroups, getGroupById, createGroup, updateGroup, 
-  getAllTickets, getTicketById, createTicket, updateTicket, getTimeWorkedByUserAndTicket, createTimeWorked, updateTimeWorked,
+  getUserById, getUserByIdDetails, updateUser, updatePasswordWithOld, updatePasswordWithoutOld, getAllGroups, getGroupById, 
+  createGroup, updateGroup, getAllTickets, getTicketById, createTicket, updateTicket, getTimeWorkedByUserAndTicket, createTimeWorked, updateTimeWorked,
   getAllCompaniesEssential, getAllContractsEssential, getAllUsersEssential, getAllGroupsEssential, getAllTicketsEssential,
   getTimeWorkedByTicket, updatePrimary, syncAdditionalResolvers, getNameLastNamebyUserId, resolveTicket, cancelTicket,
   updateSlaReason, reOpenTicket, putOnHoldTicket, getUserData, getTicketEssential, getIdTicketEssential, getMyTickets, 
@@ -542,6 +542,27 @@ app.get('/users/:user_id', authenticateJWT, authorizeRoles('admin', 'operator'),
   }
 });
 
+// **Pridobitev podrobnosti enega uporabnika na podlagi user_id (brez gesla)**
+// @ts-ignore
+app.get('/user/info/:user_id', authenticateJWT, authorizeRoles('admin', 'operator', 'user'), async (req: Request, res: Response) => {
+    try {
+        const user_id = parseInt(req.params.user_id, 10);
+        if (isNaN(user_id)) {
+            return res.status(400).json({ error: 'Neveljaven user_id' });
+        }
+  
+        const user = await getUserByIdDetails(user_id);
+        if (!user) {
+            return res.status(404).json({ error: 'Uporabnik ni najden' });
+        }
+  
+        res.status(200).json(user);
+    } catch (error) {
+        console.error(`Napaka pri pridobivanju uporabnika ID=${req.params.user_id}:`, error);
+        res.status(500).json({ error: 'Napaka pri dostopu do uporabnika' });
+    }
+  });
+
 /*// **Dodajanje novega uporabnika**
 // @ts-ignore
 app.post('/users', authenticateJWT, authorizeRoles('admin'), async (req: Request, res: Response) => {
@@ -606,7 +627,7 @@ app.put('/users/:user_id', authenticateJWT, authorizeRoles('admin', 'operator'),
 
 // **Posodobitev gesla z zahtevanim starim geslom**
 // @ts-ignore
-app.put('/users/password/user/reset/:user_id', async (req, res) => {
+app.put('/users/password/user/reset/:user_id', authenticateJWT, authorizeRoles('admin', 'operator', 'user'), async (req, res) => {
     try {
       const { user_id } = req.params;
       const { old_password, new_password } = req.body;
@@ -615,10 +636,10 @@ app.put('/users/password/user/reset/:user_id', async (req, res) => {
         return res.status(400).json({ message: 'Manjkajoči podatki!' });
       }
   
-      const result = await updatePasswordWithoutOld(parseInt(user_id), new_password);
-      
+      const result = await updatePasswordWithOld(parseInt(user_id), old_password, new_password);
+
       if (!result.success) {
-        return res.status(400).json({ message: 'Geslo uspešno ponastavljeno' });
+        return res.status(400).json({ message: result.message });
       }
   
       res.json({ message: 'Geslo uspešno posodobljeno!' });

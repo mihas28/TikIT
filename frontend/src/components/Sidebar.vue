@@ -19,7 +19,7 @@ const menuItems = ref([
     { name: 'Ustvari zahtevek po meri', icon: 'bi-pencil-square', path: '/custom-ticket', roles: ['operator', 'admin'] },
     { name: 'Moji dodeljeni zahtevki', icon: 'bi-clipboard-check', path: '/assigned-tickets', roles: ['operator', 'admin'] },
     { name: 'Vsi zahtevki', icon: 'bi-folder', path: '/all-tickets', roles: ['operator', 'admin'] },
-    { name: 'Podjetja', icon: 'bi-building', path: '/companies', roles: ['operator', 'admin'] },
+    //{ name: 'Podjetja', icon: 'bi-building', path: '/companies', roles: ['operator', 'admin'] },
     { name: 'Generiranje poročil', icon: 'bi-file-earmark-text', path: '/report', roles: ['operator', 'admin'] },
     { name: 'Koledar vzdrževanj', icon: 'bi-calendar', path: '/maintenance-calendar', roles: ['operator', 'admin'] },
     { name: 'Statistike', icon: 'bi-bar-chart-line', path: '/statistics', roles: ['operator', 'admin'] },

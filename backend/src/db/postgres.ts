@@ -347,6 +347,18 @@ export const getUserById = async (user_id: number) => {
     }
 };
 
+// **Funkcija za pridobitev prodrobnostienega uporabnika na podlagi user_id (brez gesla)**
+export const getUserByIdDetails = async (user_id: number) => {
+    try {
+        const result = await pool.query(`
+            SELECT u.username, u.first_name, u.last_name, u.email, u.phone_number, u.role, u.created_at, g.group_name, g.email AS group_email, c.company_name, CONCAT(c.street, ', ', c.city, ', ', c.country) AS company_location FROM users u JOIN assigment_group g ON u.group_id = g.group_id JOIN company c ON u.company_id = c.company_id WHERE u.user_id = $1;
+            `, [user_id]);
+        return result.rows[0] || null;
+    } catch (error) {
+        console.error(`Napaka pri pridobivanju uporabnika z ID=${user_id}:`, error);
+        throw error;
+    }
+};
 /*// **Funkcija za dodajanje nove pogodbe**
 export const createUser = async (
     company_id: number,
