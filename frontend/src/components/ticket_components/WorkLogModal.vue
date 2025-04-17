@@ -62,10 +62,10 @@ onMounted(loadWorkLog);
     <div class="modal-content">
       <h3>Vpiši število opravljenih ur za zahtevek ID: {{ ticketId }}</h3>
       <label>Trenutno število ur:</label>
-      <input class="form-control" v-model="numberOfHours" type="number" />
+      <input class="form-control" v-model="numberOfHours" type="number" placeholder="Vpiši ure..." />
 
       <label>Opis aktivnosti:</label>
-      <textarea class="form-control" v-model="description" type="text" ></textarea>
+      <textarea class="form-control" v-model="description" type="text" placeholder="Opiši podrobno kaj je bilo narejeno..." ></textarea>
 
       <p v-if="error" class="error">{{ error }}</p>
 

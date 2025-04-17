@@ -211,6 +211,7 @@ input, select, textarea {
   padding: 10px;
   cursor: pointer;
   border-radius: 5px;
+  float: right;
 }
 
 /* Responsive design */

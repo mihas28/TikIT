@@ -17,16 +17,14 @@ const currentWeekStart = ref(dayjs().weekday(0))
 const events = ref<any[]>([])
 const showAddModal = ref(false)
 
+const isLoading = ref(false);
+
 const selectedMaintenance = ref<any>(null)
 const showEditModal = ref(false)
 
 const openEditModal = (maintenance: any) => {
   selectedMaintenance.value = maintenance
   showEditModal.value = true
-}
-
-const refreshAfterEdit = async () => {
-  await fetchEvents()
 }
 
 const fetchEvents = async () => {
@@ -38,7 +36,15 @@ const fetchEvents = async () => {
   }
 }
 
-onMounted(fetchEvents)
+const refreshAfterEdit = async () => {
+  await fetchEvents();
+}
+
+onMounted(async () => {
+  isLoading.value = true;
+  await fetchEvents()
+  isLoading.value = false;
+})
 
 const weekDays = computed(() =>
   Array.from({ length: 7 }, (_, i) => currentWeekStart.value.add(i, 'day'))
@@ -183,7 +189,12 @@ const groupedMultiDayEvents = computed(() => {
 </script>
 
 <template>
-  <div class="content-wrapper">
+
+  <div v-if="isLoading" class="content-wrapper">
+    <p>Nalaganje koladarja vzdrževanj...</p>
+  </div>
+
+  <div v-if="!isLoading" class="content-wrapper">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-3">
       <button class="btn day_buttons" @click="openAddModal">Dodaj dogodek</button>
@@ -237,9 +248,7 @@ const groupedMultiDayEvents = computed(() => {
           </div>
         </div>
       </div>
-
       </div>
-
 
       <!-- Telo -->
       <div class="calendar-body">

@@ -45,20 +45,35 @@ const datum = new Date().toLocaleString('sl-SI', {
 
 const isLoading = ref(false);
 
+const summaryPrintRef = ref<HTMLElement | null>(null)
+
 const exportSummaryToPDF = async () => {
-  if (!summaryRef.value) return
+  const el = summaryPrintRef.value
+  if (!el) return
 
-  const canvas = await html2canvas(summaryRef.value, { scale: 2 })
-  const imgData = canvas.toDataURL('image/png')
+  // začasno pokaži, če je skrito
+  el.style.display = 'block'
 
-  const pdf = new jsPDF('p', 'mm', 'a4')
-  const pdfWidth = pdf.internal.pageSize.getWidth()
-  const pdfHeight = (canvas.height * pdfWidth) / canvas.width
+  try {
+    const canvas = await html2canvas(el, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff'
+    })
 
-  pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
-  pdf.save('TikIT_statisticni_povzetek.pdf')
+    const imgData = canvas.toDataURL('image/png')
+    const pdf = new jsPDF('p', 'mm', 'a4')
+    const pdfWidth = pdf.internal.pageSize.getWidth()
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width
+
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
+    pdf.save(`statistika-${new Date().toISOString().slice(0, 10)}.pdf`)
+  } catch (err) {
+    console.error('Napaka pri generiranju PDF:', err)
+  } finally {
+    el.style.display = 'none'
+  }
 }
-
 
 // Slovenski prevodi
 const statusLabels = {
@@ -246,15 +261,21 @@ onMounted(async () => {
   const global = await getGlobalStatistics()
 
 globalSummary.value = `
-    V sistemu TikIT je trenutno ${global.total_tickets} zahtevkov, ki jih obravnava ${global.total_users} uporabnikov.
-    Zabeleženih je ${global.total_worklogs} vnosov delovnega časa, ki so razporejeni v ${global.total_groups} skupin.
+    V sistemu TikIT je trenutno ${global.total_tickets} zahtevkov.
+    Sistem uporablja ${global.total_users} uporabnikov.
+    Število skupin: ${global.total_groups}
+
+    Zabeleženih je ${global.total_worklogs} vnosov delovnega časa. 
+    Skupaj vnešenih ur: ${global.total_hours}, skupaj vnešenih ur ta mesec: ${global.monthly_worklogs}, skupaj vnešenih ur ta teden: ${global.weekly_worklogs}.
 
     Registriranih je ${global.total_companies} podjetij s skupaj ${global.total_contracts} aktivnimi pogodbami.
 
     Trenutno stanje zahtevkov:
-    – Razrešeni ali zaključeni: ${global.resolved_tickets}
+    – Novi: ${global.new_tickets}
     – Odprti: ${global.open_tickets}
     – Čakajo na informacije: ${global.waiting_tickets}
+    – Razrešeni: ${global.resolved_tickets}
+    – Zaključeni: ${global.closed_tickets}
     – Preklicani: ${global.cancelled_tickets}
 
     Razmerje tipov zahtevkov:
@@ -267,6 +288,8 @@ globalSummary.value = `
     – Prekrški SLA pri sprejemu: ${global.accept_breaches}
 
     Od vseh zahtevkov je ${global.p1_count} imelo kritično prioriteto (P1).
+
+    Število vzdrževanj v tekočem tednu: ${global.weekly_maintenance_count}
 `
   isLoading.value = false
 
@@ -315,18 +338,26 @@ globalSummary.value = `
       </div>
     </div>
 
-    <div class="stat-summary-container mt-4" ref="summaryRef">
-    <div class="d-flex justify-content-between align-items-center mb-2">
+    <!-- Viden del z gumbom -->
+    <div class="stat-summary-container mt-4">
+      <div class="d-flex justify-content-between align-items-center mb-2">
         <h5 class="stat-summary-title">📌 Podroben statistični povzetek</h5>
         <button class="btn btn-sm btn-success" @click="exportSummaryToPDF">
-        Izvozi kot PDF
+          Izvozi kot PDF
         </button>
-    </div>
-        <p class="text-muted mt-2"><i class="bi bi-calendar3"></i> Statistika ustvarjena dne {{ datum }}</p>
-        <p class="stat-summary-text">{{ globalSummary }}</p>
+      </div>
+      <p class="text-muted mt-2">
+        <i class="bi bi-calendar3"></i> Statistika ustvarjena dne {{ datum }}
+      </p>
+      <p class="stat-summary-text">{{ globalSummary }}</p>
     </div>
 
-
+    <!-- Skrit del za izvoz -->
+    <div ref="summaryPrintRef" class="print-summary">
+      <h4 style="color:#00B0BE;">📌 Podroben statistični povzetek</h4>
+      <p class="text-muted mt-2"><i class="bi bi-calendar3"></i> Statistika ustvarjena dne {{ datum }}</p>
+      <p class="stat-summary-text">{{ globalSummary }}</p>
+    </div>
   </div>
 </template>
 
@@ -382,7 +413,7 @@ globalSummary.value = `
 }
 
 .stat-summary-text {
-  white-space: pre-line;
+  white-space: pre-wrap;
   color: #333;
   font-size: 0.95rem;
   line-height: 1.6;
@@ -391,6 +422,22 @@ globalSummary.value = `
 button.btn-success {
   background-color: #00B0BE;
   border-color: #00B0BE;
+}
+
+.print-summary {
+  display: none;
+  background-color: #fff;
+  color: #000;
+  padding: 30px;
+  max-width: 100%;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+@media print {
+  .print-summary {
+    display: block;
+  }
 }
 
 </style>

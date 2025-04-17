@@ -159,8 +159,8 @@ const handlePasswordChange = async () => {
     <div class="row">
       <div class="col-lg-4 mb-3"></div>
       <div class="col-lg-4 mb-3">
-        <label>Obstoječe geslo</label>
-        <input type="password" class="form-control" v-model="old_password" />
+        <label>Trenutno geslo</label>
+        <input placeholder="Vnesi trenutno geslo" type="password" class="form-control" v-model="old_password" />
       </div>
       <div class="col-lg-4 mb-3"></div>
     </div>
@@ -168,7 +168,7 @@ const handlePasswordChange = async () => {
       <div class="col-lg-4 mb-3"></div>
       <div class="col-lg-4 mb-3">
         <label>Novo geslo</label>
-        <input type="password" class="form-control" v-model="new_password" />
+        <input placeholder="Vnesi novo geslo" type="password" class="form-control" v-model="new_password" />
       </div>
       <div class="col-lg-4 mb-3"></div>
     </div>
@@ -176,7 +176,7 @@ const handlePasswordChange = async () => {
      <div class="col-lg-4 mb-3"></div>
       <div class="col-lg-4 mb-3">
         <label>Ponovi novo geslo</label>
-        <input type="password" class="form-control" v-model="new_confirm_password" />
+        <input placeholder="Ponovno vnesi novo geslo" type="password" class="form-control" v-model="new_confirm_password" />
       </div>
       <div class="col-lg-4 mb-3"></div>
     </div>

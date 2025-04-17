@@ -1269,10 +1269,13 @@ export const getMonthlyTicketStats = async () => {
         (SELECT COUNT(*) FROM ticket) AS total_tickets,
         (SELECT COUNT(*) FROM users) AS total_users,
         (SELECT COUNT(*) FROM time_worked WHERE time_worked > 0) AS total_worklogs,
+        (SELECT SUM(time_worked) FROM time_worked WHERE time_worked > 0) AS total_hours,
         (SELECT COUNT(*) FROM assigment_group) AS total_groups,
         (SELECT COUNT(*) FROM contract) AS total_contracts,
         (SELECT COUNT(*) FROM company) AS total_companies,
-        (SELECT COUNT(*) FROM ticket WHERE state IN ('resolved', 'closed')) AS resolved_tickets,
+        (SELECT COUNT(*) FROM ticket WHERE state = 'resolved') AS resolved_tickets,
+        (SELECT COUNT(*) FROM ticket WHERE state = 'closed') AS closed_tickets,
+        (SELECT COUNT(*) FROM ticket WHERE state = 'new') AS new_tickets,
         (SELECT COUNT(*) FROM ticket WHERE state = 'open') AS open_tickets,
         (SELECT COUNT(*) FROM ticket WHERE state = 'awaiting info') AS waiting_tickets,
         (SELECT COUNT(*) FROM ticket WHERE state = 'cancelled') AS cancelled_tickets,
@@ -1282,7 +1285,10 @@ export const getMonthlyTicketStats = async () => {
         (SELECT ROUND(AVG(EXTRACT(EPOCH FROM (resolved_at - created_at)) / 60)) FROM ticket WHERE resolved_at IS NOT NULL) AS avg_resolve_min,
         (SELECT COUNT(*) FROM ticket WHERE impact = 1 AND urgency = 1) AS p1_count,
         (SELECT COUNT(*) FROM ticket WHERE type = 'incident') AS total_incidents,
-        (SELECT COUNT(*) FROM ticket WHERE type = 'service request') AS total_requests
+        (SELECT COUNT(*) FROM ticket WHERE type = 'service request') AS total_requests,
+        (SELECT COUNT(*) AS stevilo_vzdrzevanj FROM maintenance WHERE from_date >= date_trunc('week', CURRENT_DATE) AND from_date < date_trunc('week', CURRENT_DATE) + INTERVAL '1 week') AS weekly_maintenance_count,
+        (SELECT COALESCE(SUM(time_worked), 0) AS skupno_ure FROM time_worked WHERE created_at >= date_trunc('week', CURRENT_DATE) AND created_at < date_trunc('week', CURRENT_DATE) + INTERVAL '1 week') AS weekly_worklogs,
+        (SELECT COALESCE(SUM(time_worked), 0) AS skupno_ure FROM time_worked WHERE created_at >= date_trunc('month', CURRENT_DATE) AND created_at < date_trunc('month', CURRENT_DATE) + INTERVAL '1 month') AS monthly_worklogs
       `)
   
       return result.rows[0]

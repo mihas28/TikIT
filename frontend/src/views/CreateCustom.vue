@@ -314,20 +314,20 @@ onMounted(() => {
       <!-- Naslov (čez celo širino) -->
       <div class="form-group full-width">
         <label for="title">Naslov zahtevka</label>
-        <input type="text" id="title" v-model="ticket.title" required />
+        <input type="text" class="form-control" id="title" v-model="ticket.title" placeholder="Vnesi naslov zahtevka" required  />
       </div>
 
       <!-- Opis (čez celo širino) -->
       <div class="form-group full-width">
         <label for="description">Opis</label>
-        <textarea id="description" v-model="ticket.description" required></textarea>
+        <textarea class="form-control" id="description" v-model="ticket.description" placeholder="Vnesi opis zahtevka" required></textarea>
       </div>
 
       <div class="form-row">
         <!-- Klicatelj -->
         <div class="form-group">
           <label for="caller">Klicatelj</label>
-            <input v-model="callerSearch" id="caller" @focus="showDropdowns.caller = true" required />
+            <input class="form-control" v-model="callerSearch" id="caller" @focus="showDropdowns.caller = true" placeholder="Iskanje klicatelja" required />
             <ul v-if="showDropdowns.caller">
               <li v-for="user in filteredUsers" :key="user.id" @click="selectCaller(user)">
                 {{ user.name }}
@@ -338,7 +338,7 @@ onMounted(() => {
         <!-- Podjetje -->
         <div class="form-group">
           <label for="company">Podjetje</label>
-            <input v-model="companySearch" id="company" @focus="showDropdowns.company = true" required />
+            <input class="form-control" v-model="companySearch" id="company" @focus="showDropdowns.company = true" placeholder="Iskanje podjetja" required />
             <ul v-if="showDropdowns.company">
               <li v-for="company in filteredCompanies" :key="company.id" @click="selectCompany(company)">
                 {{ company.name }}
@@ -352,7 +352,7 @@ onMounted(() => {
         <div class="form-group">
           <label for="contract">Pogodba</label>
           <div class="dropdown-container">
-          <input v-model="contractSearch" id="contract" @focus="showDropdowns.contract = true" type="text" placeholder="Iskanje pogodbe" required />
+          <input class="form-control" v-model="contractSearch" id="contract" @focus="showDropdowns.contract = true" type="text" placeholder="Iskanje pogodbe" required />
           <ul v-if="showDropdowns.contract">
             <li v-for="contract in filteredContracts" :key="contract.id" @click="selectContract(contract)">
               {{ contract.name }} - {{ contract.status }} | {{ contract.description }}
@@ -364,7 +364,7 @@ onMounted(() => {
         <!-- Inženir -->
         <div class="form-group">
           <label for="engineer">Reševalec</label>
-          <input id="engineer" v-model="engineerSearch" @focus="showDropdowns.engineer = true" required/>
+          <input class="form-control" id="engineer" v-model="engineerSearch" @focus="showDropdowns.engineer = true" placeholder="Iskanje reševalca" required/>
           <ul v-if="showDropdowns.engineer">
             <li v-for="user in filteredEngineers" :key="user.id" @click="selectEngineer(user)">
               {{ user.name }}
@@ -377,7 +377,8 @@ onMounted(() => {
         <!-- Impact -->
         <div class="form-group">
           <label for="impact">Vpliv</label>
-          <select id="impact" v-model="ticket.impact">
+          <select class="form-control" id="impact" v-model="ticket.impact" required>
+            <option value="" disabled>Izberi vpliv</option>
             <option v-for="option in impactOptions" :key="option.value" :value="option.value">
               {{ option.label }}
             </option>
@@ -387,7 +388,8 @@ onMounted(() => {
         <!-- Urgency -->
         <div class="form-group">
           <label for="urgency">Nujnost</label>
-          <select id="urgency" v-model="ticket.urgency">
+          <select class="form-control" id="urgency" v-model="ticket.urgency" required>
+            <option value="" disabled>Izberi nujnost</option>
             <option v-for="option in urgencyOptions" :key="option.value" :value="option.value">
               {{ option.label }}
             </option>
@@ -398,17 +400,18 @@ onMounted(() => {
       <div class="form-row">
         <div class="form-group">
           <label for="type">Tip zahtevka</label>
-            <select id="type" v-model="ticket.type">
-            <option v-for="option in typeOptions" :key="option.value" :value="option.value">
-              {{ option.label }}
-            </option>
+            <select class="form-control" id="type" v-model="ticket.type" required>
+              <option value="" disabled>Izberi tip</option>
+              <option v-for="option in typeOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
           </select>
         </div>
 
         <div class="form-group">
           <label for="group">Assigment group</label>
             <div class="dropdown-container">
-            <input id="group" v-model="groupSearch" @focus="showDropdowns.group = true" type="text" placeholder="Iskanje skupine" required />
+            <input class="form-control" id="group" v-model="groupSearch" @focus="showDropdowns.group = true" type="text" placeholder="Iskanje skupine" required />
             <ul v-if="showDropdowns.group">
               <li v-for="group in filteredGroups" :key="group.id" @click="selectGroup(group)">
                 {{ group.name }}
@@ -423,7 +426,7 @@ onMounted(() => {
         <div class="form-group">
           <label for="parentTicket">Nadrejeni zahtevek</label>
           <div class="dropdown-container">         
-            <input type="text" id="parentTicket" v-model="parentTicketSearch" @focus="showDropdowns.ticket = true"  placeholder="Dodaj starševski zahtevek"/>
+            <input class="form-control" type="text" id="parentTicket" v-model="parentTicketSearch" @focus="showDropdowns.ticket = true"  placeholder="Dodaj starševski zahtevek"/>
               <ul v-if="showDropdowns.ticket">
                 <li v-for="ticket in filteredTickets" :key="ticket.id" @click="selectTicket(ticket)">
                   {{ ticket.id }} | {{ ticket.name }}
@@ -434,7 +437,7 @@ onMounted(() => {
         <div class="form-group">
           <label>Dodatni reševalci</label>
             <div class="dropdown-container">
-            <input v-model="resolverSearch" @focus="showDropdowns.additional = true" type="text" placeholder="Dodaj reševalca" />
+            <input class="form-control" v-model="resolverSearch" @focus="showDropdowns.additional = true" type="text" placeholder="Dodaj reševalca" />
             <ul v-if="showDropdowns.additional">
               <li v-for="user in filteredResolvers" :key="user.id" @click="addResolver(user)">
                 {{ user.name }}
@@ -570,6 +573,7 @@ li:hover {
   padding: 10px;
   cursor: pointer;
   border-radius: 5px;
+  float: right;
 }
 
 /* Responsive design */

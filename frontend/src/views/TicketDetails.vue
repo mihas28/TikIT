@@ -1086,19 +1086,18 @@ const redirectToParentTicket = () => {
       </span>
     </div>
 
-
     <form class="ticket-form">
       <div class="form-row">
         <!-- ID -->
         <div class="form-group">
           <label for="caller">ID zahtevka</label>
-            <input v-model="ticket.ticket.ticket_id" id="ticket_id" disabled />
+            <input class="form-control" v-model="ticket.ticket.ticket_id" id="ticket_id" disabled />
         </div>
 
         <!-- Odprto dne -->
         <div class="form-group">
           <label for="date">Odprto</label>
-            <input v-model="formattedDate" id="date" disabled />
+            <input class="form-control" v-model="formattedDate" id="date" disabled />
         </div>
       </div>
         
@@ -1106,12 +1105,12 @@ const redirectToParentTicket = () => {
         <!-- status -->
         <div class="form-group">
           <label for="status">Status</label>
-            <input v-model="ticket.ticket.state" id="status" disabled />
+            <input class="form-control" v-model="ticket.ticket.state" id="status" disabled />
         </div>
         <!-- Priority -->
         <div class="form-group">
           <label for="priority">Prioriteta</label>
-          <input v-model="ticket.ticket.priority" id="priority" disabled />
+          <input class="form-control" v-model="ticket.ticket.priority" id="priority" disabled />
         </div>
       </div>
 
@@ -1119,7 +1118,7 @@ const redirectToParentTicket = () => {
         <!-- tip -->
         <div class="form-group">
           <label for="type">Tip zahtevka</label>
-            <select :disabled="!isTicketEditable" id="type" v-model="ticket.ticket.type">
+            <select class="form-control" :disabled="!isTicketEditable" id="type" v-model="ticket.ticket.type">
             <option v-for="option in typeOptions" :key="option.value" :value="option.value">
               {{ option.label }}
             </option>
@@ -1128,7 +1127,7 @@ const redirectToParentTicket = () => {
         <!-- Impact -->
         <div class="form-group">
           <label for="impact">Vpliv</label>
-          <select :disabled="!isTicketEditable" id="impact" v-model="ticket.ticket.impact" @change="getPriority">
+          <select class="form-control" :disabled="!isTicketEditable" id="impact" v-model="ticket.ticket.impact" @change="getPriority">
             <option v-for="option in impactOptions" :key="option.value" :value="option.value">
               {{ option.label }}
             </option>
@@ -1140,7 +1139,7 @@ const redirectToParentTicket = () => {
         <!-- Klicatelj -->
         <div class="form-group">
           <label for="caller">Klicatelj</label>
-            <input :disabled="!isTicketEditable" v-model="callerSearch" id="caller" @focus="showDropdowns.caller = true" @input="getDataFunction" @dblclick="getDetails('caller', ticket.ticket.caller_id)" required />
+            <input class="form-control" :disabled="!isTicketEditable" v-model="callerSearch" id="caller" @focus="showDropdowns.caller = true" @input="getDataFunction" @dblclick="getDetails('caller', ticket.ticket.caller_id)" required />
             <ul v-if="showDropdowns.caller">
               <li v-for="user in filteredUsers" :key="user.id" @click="selectCaller(user)">
                 {{ user.name }}
@@ -1150,7 +1149,7 @@ const redirectToParentTicket = () => {
         <!-- Urgency -->
         <div class="form-group">
           <label for="urgency">Nujnost</label>
-          <select :disabled="!isTicketEditable" id="urgency" v-model="ticket.ticket.urgency" @change="getPriority">
+          <select class="form-control" :disabled="!isTicketEditable" id="urgency" v-model="ticket.ticket.urgency" @change="getPriority">
             <option v-for="option in urgencyOptions" :key="option.value" :value="option.value">
               {{ option.label }}
             </option>
@@ -1162,7 +1161,7 @@ const redirectToParentTicket = () => {
         <!-- Podjetje -->
         <div class="form-group">
           <label for="company">Podjetje</label>
-            <input :disabled="!isTicketEditable" v-model="companySearch" id="company" @focus="showDropdowns.company = true" @input="getDataFunction" @dblclick="getDetails('company', ticket.ticket.company_id)" required />
+            <input class="form-control" :disabled="!isTicketEditable" v-model="companySearch" id="company" @focus="showDropdowns.company = true" @input="getDataFunction" @dblclick="getDetails('company', ticket.ticket.company_id)" required />
             <ul v-if="showDropdowns.company">
               <li v-for="company in filteredCompanies" :key="company.id" @click="selectCompany(company)">
                 {{ company.name }}
@@ -1173,7 +1172,7 @@ const redirectToParentTicket = () => {
         <div class="form-group">
           <label for="group">Assigment group</label>
             <div class="dropdown-container">
-            <input :disabled="!isTicketEditable" id="group" v-model="groupSearch" @focus="showDropdowns.group = true" type="text" placeholder="Iskanje skupine" @input="getDataFunction" @dblclick="getDetails('group', ticket.ticket.group_id)" required />
+            <input class="form-control" :disabled="!isTicketEditable" id="group" v-model="groupSearch" @focus="showDropdowns.group = true" type="text" placeholder="Iskanje skupine" @input="getDataFunction" @dblclick="getDetails('group', ticket.ticket.group_id)" required />
             <ul v-if="showDropdowns.group">
               <li v-for="group in filteredGroups" :key="group.id" @click="selectGroup(group)">
                 {{ group.name }}
@@ -1188,7 +1187,7 @@ const redirectToParentTicket = () => {
         <div class="form-group">
           <label for="parentTicket">Nadrejeni zahtevek</label>
           <div class="dropdown-container">         
-            <input :disabled="!isTicketEditable" type="text" id="parentTicket" v-model="parentTicketSearch" @focus="showDropdowns.ticket = true" @input="getDataFunction" @dblclick="redirectToParentTicket" placeholder="Dodaj starševski zahtevek"/>
+            <input class="form-control" :disabled="!isTicketEditable" type="text" id="parentTicket" v-model="parentTicketSearch" @focus="showDropdowns.ticket = true" @input="getDataFunction" @dblclick="redirectToParentTicket" placeholder="Dodaj starševski zahtevek"/>
               <ul v-if="showDropdowns.ticket">
                 <li v-for="ticket in filteredTickets" :key="ticket.id" @click="selectTicket(ticket)">
                   {{ ticket.id }} | {{ ticket.name }}
@@ -1199,7 +1198,7 @@ const redirectToParentTicket = () => {
         <!-- Inženir -->
         <div class="form-group">
           <label for="engineer">Reševalec</label>
-          <input :disabled="!isTicketEditable" id="engineer" v-model="engineerSearch" @focus="showDropdowns.engineer = true" @input="getDataFunction" @dblclick="getDetails('assignee', ticket.primary[0].user_id)" required/>
+          <input class="form-control" :disabled="!isTicketEditable" id="engineer" v-model="engineerSearch" @focus="showDropdowns.engineer = true" @input="getDataFunction" @dblclick="getDetails('assignee', ticket.primary[0].user_id)" required/>
           <ul v-if="showDropdowns.engineer">
             <li v-for="user in filteredEngineers" :key="user.id" @click="selectEngineer(user)">
               {{ user.name }}
@@ -1213,7 +1212,7 @@ const redirectToParentTicket = () => {
         <div class="form-group">
           <label for="contract">Pogodba</label>
           <div class="dropdown-container">
-            <input :disabled="!isTicketEditable" v-model="contractSearch" id="contract" @focus="showDropdowns.contract = true" type="text" placeholder="Iskanje pogodbe" @input="getDataFunction" @dblclick="getDetails('contract', ticket.ticket.contract_id)" required />
+            <input class="form-control" :disabled="!isTicketEditable" v-model="contractSearch" id="contract" @focus="showDropdowns.contract = true" type="text" placeholder="Iskanje pogodbe" @input="getDataFunction" @dblclick="getDetails('contract', ticket.ticket.contract_id)" required />
             <ul v-if="showDropdowns.contract">
               <li v-for="contract in filteredContracts" :key="contract.id" @click="selectContract(contract)">
                 {{ contract.name }} - {{ contract.status }} | {{ contract.description }}
@@ -1224,7 +1223,7 @@ const redirectToParentTicket = () => {
         <div class="form-group">
           <label>Dodatni reševalci</label>
             <div class="dropdown-container">
-            <input :disabled="!isTicketEditable" v-model="resolverSearch" @focus="showDropdowns.additional = true" type="text" placeholder="Dodaj reševalca" @input="getDataFunction" />
+            <input class="form-control" :disabled="!isTicketEditable" v-model="resolverSearch" @focus="showDropdowns.additional = true" type="text" placeholder="Dodaj reševalca" @input="getDataFunction" />
             <ul v-if="showDropdowns.additional">
               <li v-for="user in filteredResolvers" :key="user.id" @click="addResolver(user)">
                 {{ user.name }}
@@ -1243,19 +1242,19 @@ const redirectToParentTicket = () => {
       <!-- Naslov (čez celo širino) -->
       <div class="form-group full-width">
         <label for="title">Naslov zahtevka</label>
-        <input :disabled="!isTicketEditable" type="text" id="title" v-model="ticket.ticket.title" required />
+        <input class="form-control" :disabled="!isTicketEditable" type="text" id="title" v-model="ticket.ticket.title" required />
       </div>
 
       <!-- Opis (čez celo širino) -->
       <div class="form-group full-width">
         <label for="description">Opis</label>
-        <textarea :disabled="!isTicketEditable" id="description" v-model="ticket.ticket.description" required></textarea>
+        <textarea class="form-control" :disabled="!isTicketEditable" id="description" v-model="ticket.ticket.description" required></textarea>
       </div>
 
       <!-- Razslog za Accept SLA breach -->
       <div v-if="ticket.ticket.accept_sla_breach !== null" class="form-group full-width">
         <label>Razlog za prekoračitev spremnega SLA</label>
-        <textarea disabled v-model="ticket.ticket.accept_sla_breach"></textarea>
+        <textarea class="form-control" disabled v-model="ticket.ticket.accept_sla_breach"></textarea>
       </div>
 
     </form>
@@ -1267,7 +1266,8 @@ const redirectToParentTicket = () => {
       <h3>Razrešitev</h3>
 
       <label>Koda razrešitve *</label>
-      <select :disabled="!isTicketEditable" v-model="resolution.close_code">
+      <select class="form-control" :disabled="!isTicketEditable" v-model="resolution.close_code">
+        <option value="" disabled>Izberi kodo</option>
         <option value="solved">Rešeno</option>
         <option value="duplicate">Podvojen</option>
         <option value="cancelled">Preklicano</option>
@@ -1275,7 +1275,7 @@ const redirectToParentTicket = () => {
       </select>
 
       <label>Opombe razrešitve *</label>
-      <textarea :disabled="!isTicketEditable" v-model="resolution.close_notes"></textarea>
+      <textarea class="form-control" :disabled="!isTicketEditable" v-model="resolution.close_notes" placeholder="Vnesi opombe..."></textarea>
 
       <div class="resolution-checkbox">
         <label for="addResolutionToComments">Dodaj opombe razrešitve v komentarje</label>
@@ -1288,7 +1288,7 @@ const redirectToParentTicket = () => {
      <div v-if="showAwaitingInfoForm" id="resolution-section1" class="resolution-form">
       <h3>Razlog za čakanje</h3>
 
-      <textarea :disabled="!isTicketEditable" v-model="awaitingInfoReason"></textarea>
+      <textarea class="form-control" :disabled="!isTicketEditable" v-model="awaitingInfoReason" placeholder="Vnesi razlog..."></textarea>
       <br><br>
      </div>
 
@@ -1298,12 +1298,12 @@ const redirectToParentTicket = () => {
       
       <!-- Vnos polja za javna in zasebna sporočila -->
       <div class="comment-inputs">
-        <textarea :disabled="!isTicketEditable" v-model="newPublicComment" placeholder="Vnesi javni komentar..." class="input-field"></textarea>
+        <textarea  :disabled="!isTicketEditable" v-model="newPublicComment" placeholder="Vnesi javni komentar..." class="input-field form-control"></textarea>
         <div class="ticket-nav1">
           <button :disabled="!isTicketEditable" @click="sendComment(true)" class="btn-send">Pošlji</button>
         </div>
 
-        <textarea :disabled="!isTicketEditable" v-model="newPrivateComment" placeholder="Vnesi zasebni komentar..." class="input-field"></textarea>
+        <textarea :disabled="!isTicketEditable" v-model="newPrivateComment" placeholder="Vnesi zasebni komentar..." class="input-field form-control"></textarea>
         <div class="ticket-nav1">
           <button :disabled="!isTicketEditable" @click="sendComment(false)" class="btn-send">Pošlji</button>
         </div>

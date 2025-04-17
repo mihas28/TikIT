@@ -22,7 +22,7 @@ const submit = () => {
   <div v-if="modelValue" class="modal-backdrop">
     <div class="modal-content p-3 rounded bg-white shadow">
       <h5>Razlog za SLA prekoračitev</h5>
-      <textarea class="form-control" v-model="reason" rows="4" />
+      <textarea class="form-control" v-model="reason" rows="4" placeholder="Vnesi razlog..."></textarea>
       <div class="mt-3 d-flex justify-content-end">
         <button class="btn-primary" @click="submit">Shrani</button>
       </div>

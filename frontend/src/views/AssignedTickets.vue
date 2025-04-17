@@ -64,10 +64,10 @@ const formatDate = (dateString: string): string => {
 
 // **Preslikava prioritet**
 const priorityMap: { [key: string]: { text: string; color: string } } = {
-  "1": { text: "Kritična", color: "red" },
-  "2": { text: "Visoka", color: "orange" },
-  "3": { text: "Srednja", color: "green" },
-  "4": { text: "Nizka", color: "green" }
+  "1": { text: "P1 - kritična", color: "red" },
+  "2": { text: "P2 - visoka", color: "orange" },
+  "3": { text: "P3 - srednja", color: "green" },
+  "4": { text: "P4 - nizka", color: "green" }
 };
 
 const stateMap: { [key: string]: { text: string; icon: string } } = {
