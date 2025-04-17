@@ -888,3 +888,118 @@ export const changePassword = async (user_id: number, old_password: string, new_
   }
 }
 
+// statistike
+
+// **Statistika za status ticketov**
+export const getTicketStatusStats = async () => {
+  try
+  {
+    const authStore = useAuthStore()
+    const response = await axios.get('http://localhost:3000/statistics/status', {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`
+      }
+    })
+    return response.data
+  } catch (error) {
+    console.error(`Napaka pri pridobivanju statistik`, error)
+    throw error
+  }
+}
+
+// **Statistika za prioriteto ticketov**
+export const getTicketPriorityStats = async () => {
+  try
+  {
+  const authStore = useAuthStore()
+  const response = await axios.get('http://localhost:3000/statistics/priority', {
+    headers: { Authorization: `Bearer ${authStore.accessToken}` }
+  })
+  return response.data
+  } catch (error) {
+    console.error(`Napaka pri pridobivanju statistik`, error)
+    throw error
+  }
+}
+
+// **Statistika za tip ticketov**
+export const getTicketTypeStats = async () => {
+  try
+  {
+    const authStore = useAuthStore()
+    const response = await axios.get('http://localhost:3000/statistics/type', {
+      headers: { Authorization: `Bearer ${authStore.accessToken}` }
+    })
+    return response.data
+  } catch (error) {
+    console.error(`Napaka pri pridobivanju statistik`, error)
+    throw error
+  }
+}
+
+// **Statistika za prikaz najbolj pogostih reševalcev ticketov**
+export const getResolverTypeStats = async () => {
+  try
+  {
+    const authStore = useAuthStore()
+    const response = await axios.get('http://localhost:3000/statistics/resolver', {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`
+      }
+    })
+    return response.data
+  } catch (error) {
+    console.error(`Napaka pri pridobivanju statistik`, error)
+    throw error
+  }
+}
+
+// **Statistika za prikaz najbolj zahtevnih podjetij**
+export const getCompaniesTypeStats = async () => {
+  try
+  {
+    const authStore = useAuthStore()
+    const response = await axios.get('http://localhost:3000/statistics/companies', {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`
+      }
+    })
+    return response.data
+  } catch (error) {
+    console.error(`Napaka pri pridobivanju statistik`, error)
+    throw error
+  }
+}
+
+// **Statistika za prikaz mesečnih ticketov**
+export const getMonthlyTicketStats = async () => {
+  try
+  {
+    const authStore = useAuthStore()
+    const response = await axios.get('http://localhost:3000/statistics/monthly', {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`
+      }
+    })
+    return response.data
+  } catch (error) {
+    console.error(`Napaka pri pridobivanju statistik`, error)
+    throw error
+  }
+}
+
+export const getGlobalStatistics = async () => {
+  try
+    {
+    const authStore = useAuthStore()
+    const response = await axios.get('http://localhost:3000/statistics/summary', {
+      headers: {
+        Authorization: `Bearer ${authStore.accessToken}`
+      }
+    })
+    return response.data
+  } catch (error) {
+  console.error(`Napaka pri pridobivanju statistik`, error)
+  throw error
+  }
+}

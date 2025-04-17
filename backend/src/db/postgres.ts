@@ -1129,4 +1129,168 @@ export const updateMaintenance = async (maintenance_id: number, title: string, d
     }
 };
 
+// **Funkcije za statistike**
+// Stanje ticketa
+export const getTicketStatusStatistics = async () => {
+    try {
+        const result = await pool.query(`
+            SELECT state, COUNT(*) as count
+            FROM ticket
+            GROUP BY state
+          `)
+      
+          const stats: Record<string, number> = {}
+          result.rows.forEach(row => {
+            stats[row.state] = Number(row.count)
+          })
+
+          return stats;
+    } catch (error) {
+        console.error('Napaka pri pridobivanju statistike zahtevkov:', error);
+        throw error;
+    }
+};
+
+// Prioritete ticketa
+export const getTicketPriorityStatistics = async () => {
+    try {
+        const result = await pool.query(`
+            SELECT CASE WHEN impact = 1 AND urgency = 1 THEN 'P1' WHEN impact = 2 AND urgency = 1 THEN 'P2' WHEN impact = 3 AND urgency = 1 THEN 'P3' WHEN impact = 1 AND urgency = 2 THEN 'P2' WHEN impact = 1 AND urgency = 3 THEN 'P3' WHEN impact = 2 AND urgency = 2 THEN 'P3' WHEN impact = 3 AND urgency = 2 THEN 'P4' WHEN impact = 2 AND urgency = 3 THEN 'P4' WHEN impact = 3 AND urgency = 3 THEN 'P4' END AS priority, COUNT(*) AS total, COUNT(*) FILTER (WHERE accept_sla_breach IS NOT NULL OR sla_breach IS NOT NULL) AS breached FROM ticket GROUP BY priority ORDER BY priority;
+          `)
+      
+          const stats: Record<string, { total: number; breached: number }> = {}
+
+        result.rows.forEach(row => {
+        stats[row.priority] = {
+            total: Number(row.total),
+            breached: Number(row.breached)
+        }
+        })
+
+        return stats
+    } catch (error) {
+        console.error('Napaka pri pridobivanju statistike zahtevkov:', error);
+        throw error;
+    }
+};
+
+// Tip ticketa
+export const getTicketTypeStatistics = async () => {
+    try {
+        const result = await pool.query(`
+            SELECT type, COUNT(*) as count
+            FROM ticket
+            GROUP BY type
+          `)
+      
+          const stats: Record<string, number> = {}
+          result.rows.forEach(row => {
+            stats[row.type] = Number(row.count)
+          })
+
+          return stats;
+    } catch (error) {
+        console.error('Napaka pri pridobivanju statistike zahtevkov:', error);
+        throw error;
+    }
+};
+
+// Najpogostejši reševalci
+export const getTicketResolver = async () => {
+    try {
+        const result = await pool.query(`
+            SELECT u.first_name || ' ' || u.last_name AS resolver, COUNT(t.ticket_id) AS resolved_count
+            FROM ticket t
+            JOIN time_worked ua ON t.ticket_id = ua.ticket_id
+            JOIN users u ON ua.user_id = u.user_id
+            WHERE t.state IN ('resolved', 'closed', 'open', 'awaiting info') AND ua.primary_resolver IS NOT NULL
+            GROUP BY u.user_id
+            ORDER BY resolved_count DESC
+            LIMIT 5;
+          `)
+      
+          return result.rows.map(row => ({
+            resolver: row.resolver,
+            resolved_count: Number(row.resolved_count)
+          }))
+    } catch (error) {
+        console.error('Napaka pri pridobivanju statistike zahtevkov:', error);
+        throw error;
+    }
+};
+
+// Najpogostejša podjetja
+export const getTicketCompanies = async () => {
+    try {
+        const result = await pool.query(`
+            SELECT c.company_name, COUNT(*) AS total
+            FROM ticket t
+            JOIN users u ON t.caller_id = u.user_id
+            JOIN company c ON u.company_id = c.company_id
+            GROUP BY c.company_name
+            ORDER BY total DESC
+            LIMIT 5;
+          `)
+      
+          return result.rows.map(row => ({
+            company_name: row.company_name,
+            total: Number(row.total)
+          }))
+    } catch (error) {
+        console.error('Napaka pri pridobivanju statistike zahtevkov:', error);
+        throw error;
+    }
+};
+
+export const getMonthlyTicketStats = async () => {
+    try {
+      const result = await pool.query(`
+        SELECT TO_CHAR(created_at, 'MM-YYYY') AS month, COUNT(*) AS count
+        FROM ticket
+        WHERE created_at >= NOW() - INTERVAL '12 months'
+        GROUP BY month
+        ORDER BY month
+      `)
+  
+      return result.rows.map(row => ({
+        month: row.month,
+        count: Number(row.count)
+      }))
+    } catch (error) {
+      console.error('Napaka pri branju mesečne statistike:', error)
+      throw error
+    }
+  }  
+
+  export const getGlobalStatistics = async () => {
+    try {
+      const result = await pool.query(`
+        SELECT
+        (SELECT COUNT(*) FROM ticket) AS total_tickets,
+        (SELECT COUNT(*) FROM users) AS total_users,
+        (SELECT COUNT(*) FROM time_worked WHERE time_worked > 0) AS total_worklogs,
+        (SELECT COUNT(*) FROM assigment_group) AS total_groups,
+        (SELECT COUNT(*) FROM contract) AS total_contracts,
+        (SELECT COUNT(*) FROM company) AS total_companies,
+        (SELECT COUNT(*) FROM ticket WHERE state IN ('resolved', 'closed')) AS resolved_tickets,
+        (SELECT COUNT(*) FROM ticket WHERE state = 'open') AS open_tickets,
+        (SELECT COUNT(*) FROM ticket WHERE state = 'awaiting info') AS waiting_tickets,
+        (SELECT COUNT(*) FROM ticket WHERE state = 'cancelled') AS cancelled_tickets,
+        (SELECT COUNT(*) FROM ticket WHERE accept_sla_breach IS NOT NULL) AS accept_breaches,
+        (SELECT COUNT(*) FROM ticket WHERE sla_breach IS NOT NULL) AS resolve_breaches,
+        (SELECT ROUND(AVG(EXTRACT(EPOCH FROM (accepted_at - created_at)) / 60)) FROM ticket WHERE accepted_at IS NOT NULL) AS avg_accept_min,
+        (SELECT ROUND(AVG(EXTRACT(EPOCH FROM (resolved_at - created_at)) / 60)) FROM ticket WHERE resolved_at IS NOT NULL) AS avg_resolve_min,
+        (SELECT COUNT(*) FROM ticket WHERE impact = 1 AND urgency = 1) AS p1_count,
+        (SELECT COUNT(*) FROM ticket WHERE type = 'incident') AS total_incidents,
+        (SELECT COUNT(*) FROM ticket WHERE type = 'service request') AS total_requests
+      `)
+  
+      return result.rows[0]
+    } catch (error) {
+      console.error('Napaka pri globalni statistiki:', error)
+      throw error
+    }
+  }
+  
+
 export default pool;

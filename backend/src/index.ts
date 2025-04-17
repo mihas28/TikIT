@@ -25,7 +25,8 @@ import { getCompany, verifyUser, registerUser, getAllCompanies,
   updateSlaReason, reOpenTicket, putOnHoldTicket, getUserData, getTicketEssential, getIdTicketEssential, getMyTickets, 
   getUserIdByEmail, getEmailByUserId, getGroupEmailById, getEmailByTicketId, updateTicketTimestamp, autoCloseResolvedTickets,
   getTitleAndDescriptionFromTicket, getMaintenancesForWeek, insertMaintenance, updateMaintenance, getAllResolvedTickets,
-  getTimeWorkedByTicketAll, updateContractStates } from './db/postgres';
+  getTimeWorkedByTicketAll, updateContractStates, getTicketStatusStatistics, getTicketPriorityStatistics, getTicketTypeStatistics,
+  getTicketResolver, getTicketCompanies, getMonthlyTicketStats, getGlobalStatistics } from './db/postgres';
 import connectMongo, { getChatsByTicketId, createChat } from './db/mongo';
 import { authenticateJWT, generateAccessToken, generateRefreshToken, refreshToken, authorizeRoles } from './middleware/auth';
 import { check } from 'express-validator';
@@ -86,6 +87,7 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 app.post('/refresh', authenticateJWT, authorizeRoles('admin', 'operator', 'user'), async (req: Request, res: Response) => {
+    console.log("refresh se kliče",req.body);
     refreshToken(req, res);
 });
 
@@ -1309,6 +1311,88 @@ app.put('/ticket/:id/sla-accept-breach', authenticateJWT, authorizeRoles('admin'
       res.status(500).json({ error: 'Napaka pri vstavljanju vzdrževalnega dogodka.' })
     }
   })
+
+  //statistike
+
+  //statistika za statuse ticketov
+  app.get('/statistics/status', authenticateJWT, authorizeRoles('admin', 'operator'), async (req, res) => {
+    try {
+        const stats = await getTicketStatusStatistics()
+  
+        res.json(stats)
+    } catch (err) {
+      console.error('Napaka pri pridobivanju statistik:', err)
+      res.status(500).json({ message: 'Napaka pri branju statistik' })
+    }
+  })
+
+  //statistika za prioritete ticketov
+  app.get('/statistics/priority', authenticateJWT, authorizeRoles('admin', 'operator'), async (req, res) => {
+    try {
+        const stats = await getTicketPriorityStatistics()
+  
+        res.json(stats)
+    } catch (err) {
+      console.error('Napaka pri pridobivanju statistik:', err)
+      res.status(500).json({ message: 'Napaka pri branju statistik' })
+    }
+  })
+  
+ //statistika za tip ticketov
+ app.get('/statistics/type', authenticateJWT, authorizeRoles('admin', 'operator'), async (req, res) => {
+    try {
+        const stats = await getTicketTypeStatistics()
+  
+        res.json(stats)
+    } catch (err) {
+      console.error('Napaka pri pridobivanju statistik:', err)
+      res.status(500).json({ message: 'Napaka pri branju statistik' })
+    }
+  })
+  
+  //statistika za prikaz najbolj pogostih reševalcev ticketov
+ app.get('/statistics/resolver', authenticateJWT, authorizeRoles('admin', 'operator'), async (req, res) => {
+    try {
+        const stats = await getTicketResolver()
+
+        res.json(stats)
+    } catch (err) {
+      console.error('Napaka pri pridobivanju statistik:', err)
+      res.status(500).json({ message: 'Napaka pri branju statistik' })
+    }
+  })
+
+  //statistika za prikaz najbolj pogostih podjetij ki kličejo ticket
+  app.get('/statistics/companies', authenticateJWT, authorizeRoles('admin', 'operator'), async (req, res) => {
+    try {
+        const stats = await getTicketCompanies()
+        
+        res.json(stats)
+    } catch (err) {
+      console.error('Napaka pri pridobivanju statistik:', err)
+      res.status(500).json({ message: 'Napaka pri branju statistik' })
+    }
+  })
+
+  //statistika za prikaz števila novih ticketov po mesecih za obdobje enega leta
+  app.get('/statistics/monthly', authenticateJWT, authorizeRoles('admin', 'operator'), async (req, res) => {
+    try {
+      const result = await getMonthlyTicketStats()
+      res.json(result)
+    } catch (error) {
+      res.status(500).json({ message: 'Napaka pri statistiki po mesecih' })
+    }
+  })
+  
+  app.get('/statistics/summary', authenticateJWT, authorizeRoles('admin', 'operator'), async (req, res) => {
+    try {
+      const stats = await getGlobalStatistics()
+      res.json(stats)
+    } catch (err) {
+      console.error('Napaka pri summary statistiki:', err)
+      res.status(500).json({ message: 'Napaka pri pridobivanju statistike' })
+    }
+  })  
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
   

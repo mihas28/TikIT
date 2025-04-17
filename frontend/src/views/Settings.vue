@@ -88,7 +88,7 @@ const handlePasswordChange = async () => {
   </div>
 
   <div v-if="!isLoading" class="content-wrapper">
-    <h4 class="mb-4">Informacije o uporabniku</h4>
+    <h2 class="mb-4">Informacije o uporabniku</h2>
 
     <div class="row">
       <div class="col-lg-6 mb-3">
