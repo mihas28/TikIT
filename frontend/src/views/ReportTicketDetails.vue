@@ -109,7 +109,8 @@ const totalHours = () => {
         <h3>Osnovne informacije</h3>
         <p class="comment-text"><strong>Naslov:</strong> {{ ticket.title }}</p>
         <p class="comment-text"><strong>Opis:</strong> {{ ticket.description }}</p>
-        <p><strong>Vrsta:</strong> <span v-if="ticket.type = 'service request'">zahtevek</span><span v-else>{{ ticket.type }}</span></p>
+        <p><strong>Vrsta:</strong> <span v-if="ticket.type === 'service request'">Zahtevek</span><span v-else>Incident</span></p>
+        <p v-if="ticket.state === 'resolved'"><strong>Stanje:</strong> Razrešeno</p><p v-if="ticket.state === 'closed'"><strong>Stanje:</strong> Zaprto</p>
         <p><strong>Vpliv:</strong> {{ ticket.impact }}</p>
         <p><strong>Nujnost:</strong> {{ ticket.urgency }}</p>
         <p v-if="ticket.parent_ticket_id"><strong>Starševski zahtevek:</strong> #{{ ticket.parent_ticket_id }}</p>

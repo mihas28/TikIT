@@ -11,6 +11,7 @@ interface Ticket {
   caller: string;
   company_name: string;
   priority: string;
+  state: string;
   assignment_group: string;
   assigned_to: string;
   type: string;
@@ -43,6 +44,11 @@ const priorityMap: { [key: string]: { text: string; color: string } } = {
   "2": { text: "P2 - visoka", color: "orange" },
   "3": { text: "P3 - srednja", color: "green" },
   "4": { text: "P4 - nizka", color: "green" }
+};
+
+const stateMap: { [key: string]: { text: string; icon: string } } = {
+  "resolved": { text: "Rešeno", icon: "bi bi-check-circle text-success" }, // Zelena kljukica
+  "closed": { text: "Zaključeno", icon: "bi bi-check-circle-fill text-secondary" }, // Siva polna kljukica
 };
 
 const filteredTickets = computed(() => {
@@ -125,12 +131,12 @@ const shortenText = (text: string, maxLength: number = 70) =>
 <template>
 
     <div v-if="isLoading" class="content-wrapper">
-      <p>Nalaganje pogleda za pogled zahtevkov v razrešenem stanju...</p>
+      <p>Nalaganje pogleda zahtevkov v razrešenem in zaprtem stanju...</p>
     </div>
 
     <div v-if="!isLoading" class="content-wrapper">
-      <h3>Seznam razrešenih zahtevkov</h3>
-      <input type="text" v-model="searchQuery" placeholder="Išči razrešene zahtevke..." class="search-box" />
+      <h3>Seznam razrešenih in zaprtih zahtevkov</h3>
+      <input type="text" v-model="searchQuery" placeholder="Išči razrešene in zaprte zahtevke..." class="search-box" />
   
       <table>
         <thead>
@@ -153,6 +159,9 @@ const shortenText = (text: string, maxLength: number = 70) =>
             <th @click="sortBy('priority')">
               Prioriteta <span v-if="sortColumn === 'priority'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
             </th>
+            <th @click="sortBy('state')">
+              Stanje <span v-if="sortColumn === 'state'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
+            </th>
             <th @click="sortBy('assignment_group')">
               Skupina <span v-if="sortColumn === 'assignment_group'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
             </th>
@@ -174,6 +183,12 @@ const shortenText = (text: string, maxLength: number = 70) =>
             <td>
               <span :style="{ color: priorityMap[ticket.priority]?.color || 'black' }">
                 {{ priorityMap[ticket.priority]?.text || ticket.priority }}
+              </span>
+            </td>
+            <td>
+              <span>
+                <i :class="stateMap[ticket.state]?.icon || 'bi bi-question-circle text-secondary'"></i>
+                {{ stateMap[ticket.state]?.text || ticket.state }}
               </span>
             </td>
             <td>{{ shortenText(ticket.assignment_group) }}</td>

@@ -26,7 +26,8 @@ import { getCompany, verifyUser, registerUser, getAllCompanies,
   getUserIdByEmail, getEmailByUserId, getGroupEmailById, getEmailByTicketId, updateTicketTimestamp, autoCloseResolvedTickets,
   getTitleAndDescriptionFromTicket, getMaintenancesForWeek, insertMaintenance, updateMaintenance, getAllResolvedTickets,
   getTimeWorkedByTicketAll, updateContractStates, getTicketStatusStatistics, getTicketPriorityStatistics, getTicketTypeStatistics,
-  getTicketResolver, getTicketCompanies, getMonthlyTicketStats, getGlobalStatistics } from './db/postgres';
+  getTicketResolver, getTicketCompanies, getMonthlyTicketStats, getGlobalStatistics, getCompanyTicketsWithinPeriod,
+  getTimeWorkedForCompanyTickets } from './db/postgres';
 import connectMongo, { getChatsByTicketId, createChat } from './db/mongo';
 import { authenticateJWT, generateAccessToken, generateRefreshToken, refreshToken, authorizeRoles } from './middleware/auth';
 import { check } from 'express-validator';
@@ -1384,6 +1385,7 @@ app.put('/ticket/:id/sla-accept-breach', authenticateJWT, authorizeRoles('admin'
     }
   })
   
+  // statistika za povzetek sistema
   app.get('/statistics/summary', authenticateJWT, authorizeRoles('admin', 'operator'), async (req, res) => {
     try {
       const stats = await getGlobalStatistics()
@@ -1391,6 +1393,34 @@ app.put('/ticket/:id/sla-accept-breach', authenticateJWT, authorizeRoles('admin'
     } catch (err) {
       console.error('Napaka pri summary statistiki:', err)
       res.status(500).json({ message: 'Napaka pri pridobivanju statistike' })
+    }
+  })  
+
+  // statistika za pridobibanje ticketov podjetja v določenem obdobju
+  app.get('/statistics/company-tickets/:companyId', authenticateJWT, authorizeRoles('admin', 'operator'), async (req, res) => {
+    const { companyId } = req.params
+    const { from, to } = req.query
+  
+    try {
+      const result = await getCompanyTicketsWithinPeriod(Number(companyId), String(from), String(to))
+      res.json(result)
+    } catch (err) {
+      console.error('Napaka pri pridobivanju ticketov podjetja:', err)
+      res.status(500).json({ message: 'Napaka pri branju ticketov' })
+    }
+  })
+  
+  // statistika za pridobibanje ur podjetja v določenem obdobju
+  app.get('/statistics/company-timeworked/:companyId', authenticateJWT, authorizeRoles('admin', 'operator'), async (req, res) => {
+    const { companyId } = req.params
+    const { from, to } = req.query
+  
+    try {
+      const result = await getTimeWorkedForCompanyTickets(Number(companyId), String(from), String(to))
+      res.json(result)
+    } catch (err) {
+      console.error('Napaka pri pridobivanju ur podjetja:', err)
+      res.status(500).json({ message: 'Napaka pri branju ur' })
     }
   })  
 

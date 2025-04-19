@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { Bar } from 'vue-chartjs'
+import html2pdf from 'html2pdf.js'
 import {
   Chart as ChartJS,
   Title,
@@ -30,9 +31,6 @@ ChartJS.register(
   CategoryScale, LinearScale
 )
 
-import jsPDF from 'jspdf'
-import html2canvas from 'html2canvas'   
-
 const summaryRef = ref<HTMLElement | null>(null)
 
 const datum = new Date().toLocaleString('sl-SI', {
@@ -45,37 +43,31 @@ const datum = new Date().toLocaleString('sl-SI', {
 
 const isLoading = ref(false);
 
-const summaryPrintRef = ref<HTMLElement | null>(null)
+const exportSummaryToPDF = () => {
+  const element = summaryRef.value
+  if (!element) return
 
-const exportSummaryToPDF = async () => {
-  const el = summaryPrintRef.value
-  if (!el) return
+  // Prikaži samo za PDF
+  element.style.display = 'block'
 
-  // začasno pokaži, če je skrito
-  el.style.display = 'block'
-
-  try {
-    const canvas = await html2canvas(el, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#ffffff'
-    })
-
-    const imgData = canvas.toDataURL('image/png')
-    const pdf = new jsPDF('p', 'mm', 'a4')
-    const pdfWidth = pdf.internal.pageSize.getWidth()
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width
-
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
-    pdf.save(`statistika-${new Date().toISOString().slice(0, 10)}.pdf`)
-  } catch (err) {
-    console.error('Napaka pri generiranju PDF:', err)
-  } finally {
-    el.style.display = 'none'
+  const opt = {
+    margin: 0,
+    filename: `TikIT-statistika-${new Date().toLocaleDateString('sl-SI')}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
   }
+
+  html2pdf()
+    .set(opt)
+    .from(element)
+    .save()
+    .then(() => {
+      element.style.display = 'none'
+    })
 }
 
-// Slovenski prevodi
 const statusLabels = {
   new: 'Nov',
   open: 'Odprt',
@@ -339,7 +331,7 @@ globalSummary.value = `
     </div>
 
     <!-- Viden del z gumbom -->
-    <div class="stat-summary-container mt-4">
+    <div class="stat-summary-container mt-4" ref="summaryRef">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <h5 class="stat-summary-title">📌 Podroben statistični povzetek</h5>
         <button class="btn btn-sm btn-success" @click="exportSummaryToPDF">
@@ -353,7 +345,7 @@ globalSummary.value = `
     </div>
 
     <!-- Skrit del za izvoz -->
-    <div ref="summaryPrintRef" class="print-summary">
+    <div ref="summaryRef" class="print-summary">
       <h4 style="color:#00B0BE;">📌 Podroben statistični povzetek</h4>
       <p class="text-muted mt-2"><i class="bi bi-calendar3"></i> Statistika ustvarjena dne {{ datum }}</p>
       <p class="stat-summary-text">{{ globalSummary }}</p>

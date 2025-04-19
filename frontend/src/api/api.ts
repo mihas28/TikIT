@@ -990,7 +990,7 @@ export const getMonthlyTicketStats = async () => {
 
 export const getGlobalStatistics = async () => {
   try
-    {
+  {
     const authStore = useAuthStore()
     const response = await axios.get('http://localhost:3000/statistics/summary', {
       headers: {
@@ -999,7 +999,37 @@ export const getGlobalStatistics = async () => {
     })
     return response.data
   } catch (error) {
-  console.error(`Napaka pri pridobivanju statistik`, error)
-  throw error
+    console.error(`Napaka pri pridobivanju statistik`, error)
+    throw error
   }
+}
+
+// Funkcija za pridobivanje ticketov v določenem obdobju
+export const getCompanyTicketsWithinPeriod = async (companyId: number, from: string, to: string) => {
+  try
+  {
+    const authStore = useAuthStore()
+    const response = await axios.get(`http://localhost:3000/statistics/company-tickets/${companyId}?from=${from}&to=${to}`, {
+      headers: { Authorization: `Bearer ${authStore.accessToken}` }
+    })
+    return response.data
+  } catch (error) {
+    console.error(`Napaka pri pridobivanju statistik`, error)
+    throw error
+  }
+}
+
+// Funkcija za vnosov časa za določen ticket za obdobje
+export const getTimeWorkedForCompanyTickets = async (companyId: number, from: string, to: string) => {
+  try
+  {
+    const authStore = useAuthStore()
+    const response = await axios.get(`http://localhost:3000/statistics/company-timeworked/${companyId}?from=${from}&to=${to}`, {
+      headers: { Authorization: `Bearer ${authStore.accessToken}` }
+    })
+    return response.data
+  } catch (error) {
+    console.error(`Napaka pri pridobivanju statistik`, error)
+    throw error
+  }  
 }

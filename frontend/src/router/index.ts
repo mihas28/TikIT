@@ -9,8 +9,10 @@ import AllTickets from '@/views/AllTickets.vue';
 import MyTickets from '@/views/MyTickets.vue';
 import AssignedTickets from '@/views/AssignedTickets.vue';
 import Maintenance from '@/views/Maintenance.vue';
-import Report from '@/views/Report.vue';
-import TicketReport from '@/views/TicketReport.vue';
+import ReportTicketList from '@/views/ReportTicketList.vue';
+import ReportTicketDetails from '@/views/ReportTicketDetails.vue';
+import ReportCompanyList from '@/views/ReportCompanyList.vue';
+import ReportCompanyDetails from '@/views/ReportCompanyDetails.vue';
 import NotFound from '@/views/NotFound.vue';
 import Settings from '@/views/Settings.vue';
 import Statistics from '@/views/Statistics.vue';
@@ -174,7 +176,7 @@ const routes = [
     },
     { 
         path: '/report', 
-        component: Report,
+        component: ReportTicketList,
         beforeEnter: (to: any, from: any, next: any) => {
             const authStore = useAuthStore();
             if (!authStore.isAuthenticated) {
@@ -187,7 +189,33 @@ const routes = [
     { 
         path: '/report/:id', 
         name: 'TicketReport',
-        component: TicketReport,
+        component: ReportTicketDetails,
+    
+        beforeEnter: (to: any, from: any, next: any) => {
+            const authStore = useAuthStore();
+            if (!authStore.isAuthenticated) {
+                next('/login'); // Če ni prijavljen, ga preusmeri na login
+            } else {
+                next();
+            }
+        }
+    },
+    { 
+        path: '/companies', 
+        component: ReportCompanyList,
+        beforeEnter: (to: any, from: any, next: any) => {
+            const authStore = useAuthStore();
+            if (!authStore.isAuthenticated) {
+                next('/login'); // Če ni prijavljen, ga preusmeri na login
+            } else {
+                next();
+            }
+        }
+    },
+    { 
+        path: '/companies/:id', 
+        name: 'CompanyReport',
+        component: ReportCompanyDetails,
     
         beforeEnter: (to: any, from: any, next: any) => {
             const authStore = useAuthStore();
