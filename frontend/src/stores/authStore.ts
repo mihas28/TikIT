@@ -3,6 +3,8 @@ import { jwtDecode } from 'jwt-decode';
 import axios from 'axios';
 import router from '../router'; 
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 interface DecodedToken {
     userId: number;
     role: string;
@@ -62,7 +64,7 @@ export const useAuthStore = defineStore('auth', {
         async refreshAccessToken() {
             try {
               const response = await axios.post(
-                'http://localhost:3000/refresh',
+                `${API_URL}/refresh`,
                 {refreshToken: this.refreshToken,}, // body
                 {
                   headers: {

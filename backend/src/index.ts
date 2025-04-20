@@ -27,18 +27,28 @@ import { authenticateJWT, generateAccessToken, generateRefreshToken, refreshToke
 
 dotenv.config();
 
+const allowedOrigins = [
+    'http://localhost:5173',
+    'http://67.221.248.15'
+];
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: 'http://localhost:5173', // Enako kot za Express
-        methods: ['GET', 'POST'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
-        credentials: true
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Blocked by CORS (socket)'));
+        }
+      },
+      methods: ['GET', 'POST'],
+      allowedHeaders: ['Content-Type', 'Authorization']
     },
-    transports: ["websocket"], // Omogoči samo WebSocket (brez long polling)
-    pingInterval: 25000, // Pošlji ping vsakih 25s
-    pingTimeout: 60000, // Počakaj 60s pred timeoutom
+    transports: ['websocket'],
+    pingInterval: 25000,
+    pingTimeout: 60000
 });
 const PORT = process.env.PORT || 3000;
 
@@ -47,7 +57,14 @@ app.use(express.json());
 
 // Nastavitve za CORS
 app.use(cors({
-    origin: 'http://localhost:5173',
+    origin: (origin, callback) => {
+      // Dovoli zahteve brez origin (npr. curl, mobilne app) ali če je na seznamu
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Blocked by CORS'));
+      }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));

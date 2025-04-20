@@ -4,6 +4,8 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 import axios from 'axios';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 const router = useRouter();
 const authStore = useAuthStore();
 
@@ -19,7 +21,7 @@ onMounted(() => {
 
 const login = async () => {
     try {
-        const response = await axios.post('http://localhost:3000/login', {
+        const response = await axios.post(`${API_URL}/login`, {
             username: username.value,
             password: password.value
         });

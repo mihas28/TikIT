@@ -1,6 +1,5 @@
 import axios from 'axios';
 import { useAuthStore } from '@/stores/authStore';
-import { ca } from 'date-fns/locale';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -8,7 +7,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 export const fetchCompanyData = async () => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.get('http://localhost:3000/company', {
+    const response = await axios.get(`${API_URL}/company`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
       },
@@ -24,7 +23,7 @@ export const fetchCompanyData = async () => {
 export const updateUser = async (companyId: number, updatedData: Record<string, any>) => {
     try {
       const authStore = useAuthStore();
-      const response = await axios.put(`http://localhost:3000/users/${companyId}`, updatedData, {
+      const response = await axios.put(`${API_URL}/users/${companyId}`, updatedData, {
         headers: {
           Authorization: `Bearer ${authStore.accessToken}`,
           'Content-Type': 'application/json',
@@ -41,7 +40,7 @@ export const updateUser = async (companyId: number, updatedData: Record<string, 
 export const updatePassword = async (userId: number, updatedData: Record<string, any>) => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.put(`http://localhost:3000/users/password/admin/reset/${userId}`, JSON.stringify({ updatedData }), {
+    const response = await axios.put(`${API_URL}/users/password/admin/reset/${userId}`, JSON.stringify({ updatedData }), {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
         'Content-Type': 'application/json',
@@ -58,7 +57,7 @@ export const updatePassword = async (userId: number, updatedData: Record<string,
 export const createCompany = async (data: Record<string, any>) => {
     try {
       const authStore = useAuthStore();
-      const response = await axios.post(`http://localhost:3000/company/`, data, {
+      const response = await axios.post(`${API_URL}/company/`, data, {
         headers: {
           Authorization: `Bearer ${authStore.accessToken}`,
           'Content-Type': 'application/json',
@@ -75,7 +74,7 @@ export const createCompany = async (data: Record<string, any>) => {
 export const fetchUsers = async () => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.get('http://localhost:3000/users', {
+    const response = await axios.get(`${API_URL}/users`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
       },
@@ -91,7 +90,7 @@ export const fetchUsers = async () => {
 export const updateCompany = async (companyId: number, updatedData: Record<string, any>) => {
     try {
       const authStore = useAuthStore();
-      const response = await axios.put(`http://localhost:3000/company/${companyId}`, updatedData, {
+      const response = await axios.put(`${API_URL}/company/${companyId}`, updatedData, {
         headers: {
           Authorization: `Bearer ${authStore.accessToken}`,
           'Content-Type': 'application/json',
@@ -108,7 +107,7 @@ export const updateCompany = async (companyId: number, updatedData: Record<strin
 export const createUser = async (data: Record<string, any>) => {
     try {
       const authStore = useAuthStore();
-      const response = await axios.post(`http://localhost:3000/users/`, data, {
+      const response = await axios.post(`${API_URL}/users/`, data, {
         headers: {
           Authorization: `Bearer ${authStore.accessToken}`,
           'Content-Type': 'application/json',
@@ -125,7 +124,7 @@ export const createUser = async (data: Record<string, any>) => {
 export const fetchGroups = async () => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.get('http://localhost:3000/groups', {
+    const response = await axios.get(`${API_URL}/groups`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
       },
@@ -141,7 +140,7 @@ export const fetchGroups = async () => {
 export const updateGroup = async (groupId: number, updatedData: Record<string, any>) => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.put(`http://localhost:3000/groups/${groupId}`, updatedData, {
+    const response = await axios.put(`${API_URL}/groups/${groupId}`, updatedData, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
         'Content-Type': 'application/json',
@@ -158,7 +157,7 @@ export const updateGroup = async (groupId: number, updatedData: Record<string, a
 export const createGroup = async (data: Record<string, any>) => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.post(`http://localhost:3000/groups/`, data, {
+    const response = await axios.post(`${API_URL}/groups/`, data, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
         'Content-Type': 'application/json',
@@ -175,7 +174,7 @@ export const createGroup = async (data: Record<string, any>) => {
 export const fetchContracts = async () => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.get('http://localhost:3000/contract', {
+    const response = await axios.get(`${API_URL}/contract`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
       },
@@ -206,7 +205,7 @@ export const updateContract = async (contractId: number, updatedData: Record<str
           formData.append('contract_file', file, file.name);
       }
 
-      const response = await axios.put(`http://localhost:3000/contract/${contractId}`, formData, {
+      const response = await axios.put(`${API_URL}/contract/${contractId}`, formData, {
           headers: {
               Authorization: `Bearer ${authStore.accessToken}`,
               'Content-Type': 'multipart/form-data', // Nastavimo pravilno vsebino za prenos datoteke
@@ -242,7 +241,7 @@ export const addContract = async (data: Record<string, any>) => {
     }
 
     // Pošljemo FormData preko axiosa
-    const response = await axios.post(`http://localhost:3000/contract`, formData, {
+    const response = await axios.post(`${API_URL}/contract`, formData, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
         'Content-Type': 'multipart/form-data', 
@@ -259,7 +258,7 @@ export const addContract = async (data: Record<string, any>) => {
 export const openContractFile = async (contractId: number) => {
   try {
     const authStore = useAuthStore();
-    const response = await fetch(`http://localhost:3000/contract/${contractId}/file`, {
+    const response = await fetch(`${API_URL}/contract/${contractId}/file`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`
       }
@@ -285,7 +284,7 @@ export const openContractFile = async (contractId: number) => {
 export const fetchCompanyDataCreate = async () => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.get('http://localhost:3000/company/essential', {
+    const response = await axios.get(`${API_URL}/company/essential`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
       },
@@ -301,7 +300,7 @@ export const fetchCompanyDataCreate = async () => {
   export const fetchUsersCreate = async () => {
     try {
       const authStore = useAuthStore();
-      const response = await axios.get('http://localhost:3000/users/essential', {
+      const response = await axios.get(`${API_URL}/users/essential`, {
         headers: {
           Authorization: `Bearer ${authStore.accessToken}`,
         },
@@ -317,7 +316,7 @@ export const fetchCompanyDataCreate = async () => {
 export const fetchContractsCreate = async () => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.get('http://localhost:3000/contract/essential', {
+    const response = await axios.get(`${API_URL}/contract/essential`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
       },
@@ -333,7 +332,7 @@ export const fetchContractsCreate = async () => {
 export const fetchGroupsCreate = async () => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.get('http://localhost:3000/groups/essential', {
+    const response = await axios.get(`${API_URL}/groups/essential`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
       },
@@ -351,7 +350,7 @@ export const fetchGroupsCreate = async () => {
 export const createCustomTicket = async (data: Record<string, any>) => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.post(`http://localhost:3000/tickets/`, data, {
+    const response = await axios.post(`${API_URL}/tickets/`, data, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
         'Content-Type': 'application/json',
@@ -368,7 +367,7 @@ export const createCustomTicket = async (data: Record<string, any>) => {
 export const assignTicket = async (data: Record<string, any>) => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.post(`http://localhost:3000/time-worked/`, data, {
+    const response = await axios.post(`${API_URL}/time-worked/`, data, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
         'Content-Type': 'application/json',
@@ -385,7 +384,7 @@ export const assignTicket = async (data: Record<string, any>) => {
 export const loadTickets = async () => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.get('http://localhost:3000/tickets', {
+    const response = await axios.get(`${API_URL}/tickets`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
       },
@@ -401,7 +400,7 @@ export const loadTickets = async () => {
 export const loadResolvedTickets = async () => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.get('http://localhost:3000/tickets/resolved', {
+    const response = await axios.get(`${API_URL}/tickets/resolved`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
       },
@@ -417,7 +416,7 @@ export const loadResolvedTickets = async () => {
 export const loadMaAssignedTickets = async (user_id: string) => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.get(`http://localhost:3000/tickets/my/${user_id}`, {
+    const response = await axios.get(`${API_URL}/tickets/my/${user_id}`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
       },
@@ -433,7 +432,7 @@ export const loadMaAssignedTickets = async (user_id: string) => {
 export const fetchTicketDataCreate = async () => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.get('http://localhost:3000/tickets/essential', {
+    const response = await axios.get(`${API_URL}/tickets/essential`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
       },
@@ -449,7 +448,7 @@ export const fetchTicketDataCreate = async () => {
 export const fetchTicketDetails = async (ticket_id: string) => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.get(`http://localhost:3000/tickets/${ticket_id}`, {
+    const response = await axios.get(`${API_URL}/tickets/${ticket_id}`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
       },
@@ -465,7 +464,7 @@ export const fetchTicketDetails = async (ticket_id: string) => {
 export const updateTicket = async (ticket_id: string, data: Record<string, any>) => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.put(`http://localhost:3000/tickets/${ticket_id}`, data, {
+    const response = await axios.put(`${API_URL}/tickets/${ticket_id}`, data, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
         'Content-Type': 'application/json',
@@ -482,7 +481,7 @@ export const updateTicket = async (ticket_id: string, data: Record<string, any>)
 export const addComment = async (data: Record<string, any>) => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.post(`http://localhost:3000/chat/privat`, data, {
+    const response = await axios.post(`${API_URL}/chat/privat`, data, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
         'Content-Type': 'application/json',
@@ -499,7 +498,7 @@ export const addComment = async (data: Record<string, any>) => {
 export const fetchComments = async (ticket_id: number) => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.get(`http://localhost:3000/chat/privat/${ticket_id}`, {
+    const response = await axios.get(`${API_URL}/chat/privat/${ticket_id}`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
       },
@@ -515,7 +514,7 @@ export const fetchComments = async (ticket_id: number) => {
 export const assignTicketUpdate = async (data: Record<string, any>) => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.put(`http://localhost:3000/time-worked/update`, data, {
+    const response = await axios.put(`${API_URL}/time-worked/update`, data, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
         'Content-Type': 'application/json',
@@ -532,7 +531,7 @@ export const assignTicketUpdate = async (data: Record<string, any>) => {
 export const assignTicketUpdateAdditional = async (data: Record<string, any>) => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.put(`http://localhost:3000/time-worked-update/additional`, data, {
+    const response = await axios.put(`${API_URL}/time-worked-update/additional`, data, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
         'Content-Type': 'application/json',
@@ -549,7 +548,7 @@ export const assignTicketUpdateAdditional = async (data: Record<string, any>) =>
 export const getAllAssignees = async (ticket_id: string) => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.get(`http://localhost:3000/tickets-time-worked/${ticket_id}`, {
+    const response = await axios.get(`${API_URL}/tickets-time-worked/${ticket_id}`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
       },
@@ -565,7 +564,7 @@ export const getAllAssignees = async (ticket_id: string) => {
 export const getAssignees = async (ticket_id: number) => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.get(`http://localhost:3000/tickets-time-worked-all/${ticket_id}`, {
+    const response = await axios.get(`${API_URL}/tickets-time-worked-all/${ticket_id}`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
       },
@@ -598,7 +597,7 @@ export const uploadChatFile = async (ticketId: number, file: File, isPrivate: bo
 export const fetchWorkLog = async (ticketId: string, userId: string) => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.get(`http://localhost:3000/time-worked/${userId}/${ticketId}`, {
+    const response = await axios.get(`${API_URL}/time-worked/${userId}/${ticketId}`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
       },
@@ -614,7 +613,7 @@ export const fetchWorkLog = async (ticketId: string, userId: string) => {
 export const createWorkLog = async (data: Record<string, any>) => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.post(`http://localhost:3000/time-worked`, data, {
+    const response = await axios.post(`${API_URL}/time-worked`, data, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
         'Content-Type': 'application/json',
@@ -631,7 +630,7 @@ export const createWorkLog = async (data: Record<string, any>) => {
 export const saveWorkLog = async (ticketId: string, userId: string, updatedData: Record<string, any>) => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.put(`http://localhost:3000/time-worked/${userId}/${ticketId}`, updatedData, {
+    const response = await axios.put(`${API_URL}/time-worked/${userId}/${ticketId}`, updatedData, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
         'Content-Type': 'application/json',
@@ -648,7 +647,7 @@ export const saveWorkLog = async (ticketId: string, userId: string, updatedData:
 export const updateTicketStatus = async (ticketId: number, status: string, close_code?: string, close_notes?: string) => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.put(`http://localhost:3000/tickets/close/${ticketId}`, { status, close_code, close_notes }, {
+    const response = await axios.put(`${API_URL}/tickets/close/${ticketId}`, { status, close_code, close_notes }, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
         'Content-Type': 'application/json',
@@ -667,7 +666,7 @@ export const updateTicketStatus = async (ticketId: number, status: string, close
 export const fetchCompanyDataById = async (companyId: string) => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.get(`http://localhost:3000/company/${companyId}`, {
+    const response = await axios.get(`${API_URL}/company/${companyId}`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
       },
@@ -683,7 +682,7 @@ export const fetchCompanyDataById = async (companyId: string) => {
 export const fetchUserDataById = async (callerId: string) => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.get(`http://localhost:3000/users/${callerId}`, {
+    const response = await axios.get(`${API_URL}/users/${callerId}`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
       },
@@ -699,7 +698,7 @@ export const fetchUserDataById = async (callerId: string) => {
 export const fetchContractDataById = async (contractId: string) => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.get(`http://localhost:3000/contract/${contractId}`, {
+    const response = await axios.get(`${API_URL}/contract/${contractId}`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
       },
@@ -715,7 +714,7 @@ export const fetchContractDataById = async (contractId: string) => {
 export const fetchGroupDataById = async (groupId: string) => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.get(`http://localhost:3000/groups/${groupId}`, {
+    const response = await axios.get(`${API_URL}/groups/${groupId}`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
       },
@@ -731,7 +730,7 @@ export const fetchGroupDataById = async (groupId: string) => {
 export const submitAcceptSlaBreach = async (ticketId: number, reason: string, accept_sla: boolean) => {
   try {
     const authStore = useAuthStore()
-    const response = await axios.put(`http://localhost:3000/ticket/${ticketId}/sla-accept-breach`, 
+    const response = await axios.put(`${API_URL}/ticket/${ticketId}/sla-accept-breach`, 
       { reason, accept_sla },
       {
         headers: {
@@ -750,7 +749,7 @@ export const submitAcceptSlaBreach = async (ticketId: number, reason: string, ac
 export const fetchUserEssentialDataById = async (user_id: string) => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.get(`http://localhost:3000/userData/${user_id}`, {
+    const response = await axios.get(`${API_URL}/userData/${user_id}`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
       },
@@ -766,7 +765,7 @@ export const fetchUserEssentialDataById = async (user_id: string) => {
 export const createTicket = async (data: Record<string, any>) => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.post(`http://localhost:3000/tickets/create`, data, {
+    const response = await axios.post(`${API_URL}/tickets/create`, data, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
         'Content-Type': 'application/json',
@@ -783,7 +782,7 @@ export const createTicket = async (data: Record<string, any>) => {
 export const loadMyTickets = async (user_id: string) => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.get(`http://localhost:3000/tickets/essential/${user_id}`, {
+    const response = await axios.get(`${API_URL}/tickets/essential/${user_id}`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
       },
@@ -799,7 +798,7 @@ export const loadMyTickets = async (user_id: string) => {
 export const loadMyTicketById = async (user_id: string, ticket_id: string) => {
   try {
     const authStore = useAuthStore();
-    const response = await axios.get(`http://localhost:3000/tickets/essential/${ticket_id}/${user_id}`, {
+    const response = await axios.get(`${API_URL}/tickets/essential/${ticket_id}/${user_id}`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
       },
@@ -814,7 +813,7 @@ export const loadMyTicketById = async (user_id: string, ticket_id: string) => {
 // **Pridobi vse vzdrževalne dogodke za določen teden**
 export const getMaintenancesForWeek = async (weekStart: string) => {
   const authStore = useAuthStore();
-  const response = await axios.get(`http://localhost:3000/maintenance/week?start=${weekStart}`, {
+  const response = await axios.get(`${API_URL}/maintenance/week?start=${weekStart}`, {
     headers: {
       Authorization: `Bearer ${authStore.accessToken}`,
     },
@@ -825,7 +824,7 @@ export const getMaintenancesForWeek = async (weekStart: string) => {
 // **Dodaj nov vzdrževalni dogodek**
 export const addMaintenance = async (maintenance: any) => {
   const authStore = useAuthStore()
-  const response = await axios.post('http://localhost:3000/maintenance', maintenance, {
+  const response = await axios.post(`${API_URL}/maintenance`, maintenance, {
     headers: {
       Authorization: `Bearer ${authStore.accessToken}`,
     },
@@ -837,7 +836,7 @@ export const addMaintenance = async (maintenance: any) => {
 export const updateMaintenance = async (maintenanceId: number, data: Record<string, any>) => {
   try {
     const authStore = useAuthStore()
-    const response = await axios.put(`http://localhost:3000/maintenance/${maintenanceId}`, data,
+    const response = await axios.put(`${API_URL}/maintenance/${maintenanceId}`, data,
       {
         headers: {
           Authorization: `Bearer ${authStore.accessToken}`,
@@ -856,7 +855,7 @@ export const fetchCurrentUserInfo = async (user_id: number) => {
   try
   {
     const authStore = useAuthStore()
-    const response = await axios.get(`http://localhost:3000/user/info/${user_id}`, {
+    const response = await axios.get(`${API_URL}/user/info/${user_id}`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`,
       },
@@ -873,7 +872,7 @@ export const changePassword = async (user_id: number, old_password: string, new_
   try
   {
     const authStore = useAuthStore()
-    const response = await axios.put(`http://localhost:3000/users/password/user/reset/${user_id}`, {
+    const response = await axios.put(`${API_URL}/users/password/user/reset/${user_id}`, {
       old_password,
       new_password,
     }, {
@@ -895,7 +894,7 @@ export const getTicketStatusStats = async () => {
   try
   {
     const authStore = useAuthStore()
-    const response = await axios.get('http://localhost:3000/statistics/status', {
+    const response = await axios.get(`${API_URL}/statistics/status`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`
       }
@@ -912,7 +911,7 @@ export const getTicketPriorityStats = async () => {
   try
   {
   const authStore = useAuthStore()
-  const response = await axios.get('http://localhost:3000/statistics/priority', {
+  const response = await axios.get(`${API_URL}/statistics/priority`, {
     headers: { Authorization: `Bearer ${authStore.accessToken}` }
   })
   return response.data
@@ -927,7 +926,7 @@ export const getTicketTypeStats = async () => {
   try
   {
     const authStore = useAuthStore()
-    const response = await axios.get('http://localhost:3000/statistics/type', {
+    const response = await axios.get(`${API_URL}/statistics/type`, {
       headers: { Authorization: `Bearer ${authStore.accessToken}` }
     })
     return response.data
@@ -942,7 +941,7 @@ export const getResolverTypeStats = async () => {
   try
   {
     const authStore = useAuthStore()
-    const response = await axios.get('http://localhost:3000/statistics/resolver', {
+    const response = await axios.get(`${API_URL}/statistics/resolver`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`
       }
@@ -959,7 +958,7 @@ export const getCompaniesTypeStats = async () => {
   try
   {
     const authStore = useAuthStore()
-    const response = await axios.get('http://localhost:3000/statistics/companies', {
+    const response = await axios.get(`${API_URL}/statistics/companies`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`
       }
@@ -976,7 +975,7 @@ export const getMonthlyTicketStats = async () => {
   try
   {
     const authStore = useAuthStore()
-    const response = await axios.get('http://localhost:3000/statistics/monthly', {
+    const response = await axios.get(`${API_URL}/statistics/monthly`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`
       }
@@ -992,7 +991,7 @@ export const getGlobalStatistics = async () => {
   try
   {
     const authStore = useAuthStore()
-    const response = await axios.get('http://localhost:3000/statistics/summary', {
+    const response = await axios.get(`${API_URL}/statistics/summary`, {
       headers: {
         Authorization: `Bearer ${authStore.accessToken}`
       }
@@ -1009,7 +1008,7 @@ export const getCompanyTicketsWithinPeriod = async (companyId: number, from: str
   try
   {
     const authStore = useAuthStore()
-    const response = await axios.get(`http://localhost:3000/statistics/company-tickets/${companyId}?from=${from}&to=${to}`, {
+    const response = await axios.get(`${API_URL}/statistics/company-tickets/${companyId}?from=${from}&to=${to}`, {
       headers: { Authorization: `Bearer ${authStore.accessToken}` }
     })
     return response.data
@@ -1024,7 +1023,7 @@ export const getTimeWorkedForCompanyTickets = async (companyId: number, from: st
   try
   {
     const authStore = useAuthStore()
-    const response = await axios.get(`http://localhost:3000/statistics/company-timeworked/${companyId}?from=${from}&to=${to}`, {
+    const response = await axios.get(`${API_URL}/statistics/company-timeworked/${companyId}?from=${from}&to=${to}`, {
       headers: { Authorization: `Bearer ${authStore.accessToken}` }
     })
     return response.data
