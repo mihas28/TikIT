@@ -2,20 +2,14 @@ import cors from 'cors';
 import helmet from 'helmet';
 import express from 'express';
 import { Request, Response } from 'express';
-import { Application } from 'express-serve-static-core';
 import multer from 'multer';
 import jwt from "jsonwebtoken";
-
+import dayjs from 'dayjs';
 import { google } from 'googleapis';
-import nodemailer from 'nodemailer';
-
 import http from 'http';
 import { Server } from 'socket.io';
-
-interface AuthenticatedRequest extends Request {
-    user?: { userId: number };
-}
 import dotenv from 'dotenv';
+
 import { getCompany, verifyUser, registerUser, getAllCompanies, 
   getCompanyById, createCompany, updateCompany, getAllContracts, getContractById, createContract, updateContract, getAllUsers, 
   getUserById, getUserByIdDetails, updateUser, updatePasswordWithOld, updatePasswordWithoutOld, getAllGroups, getGroupById, 
@@ -30,10 +24,6 @@ import { getCompany, verifyUser, registerUser, getAllCompanies,
   getTimeWorkedForCompanyTickets } from './db/postgres';
 import connectMongo, { getChatsByTicketId, createChat } from './db/mongo';
 import { authenticateJWT, generateAccessToken, generateRefreshToken, refreshToken, authorizeRoles } from './middleware/auth';
-import { check } from 'express-validator';
-import dayjs from 'dayjs';
-import { testing } from 'googleapis/build/src/apis/testing';
-import { text } from 'stream/consumers';
 
 dotenv.config();
 
@@ -88,20 +78,8 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 app.post('/refresh', authenticateJWT, authorizeRoles('admin', 'operator', 'user'), async (req: Request, res: Response) => {
-    console.log("refresh se kliče",req.body);
     refreshToken(req, res);
 });
-
-/*// **API endpoint za pridobitev podatkov iz PostgreSQL** ----------- odstani
-app.get('/postgress', async (req, res) => {
-  try {
-    const postgresData = await getPostgresData();
-    res.status(200).json(postgresData);
-  } catch (error) {
-    console.error('Napaka pri pridobivanju podatkov iz PostgreSQL:', error);
-    res.status(500).json({ error: 'Napaka pri dostopu do PostgreSQL' });
-  }
-});*/
 
 // **API endpoint za pridobitev vseh chat podatkov glede na `ticket_id`**
 app.get('/chat/privat/:ticket_id', authenticateJWT, authorizeRoles('admin', 'operator'), async (req: Request, res: Response): Promise<void> => {
@@ -1748,7 +1726,7 @@ const oAuth2Client = new google.auth.OAuth2(
   
       const messages = res.data.messages;
       if (!messages || messages.length === 0) {
-        console.log('ℹ️ Ni novih sporočil.');
+        //console.log('ℹ️ Ni novih sporočil.');
         return;
       }
   

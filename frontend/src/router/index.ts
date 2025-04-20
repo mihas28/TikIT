@@ -94,38 +94,6 @@ const routes = [
             }
         }
     },
-    /* TODO (maybe)
-    {
-        path: '/ticket/:id',
-        name: 'TicketEntry',
-        beforeEnter: (to: any, from: any, next: any) => {
-            const authStore = useAuthStore();
-
-            if (!authStore.isAuthenticated) {
-            next('/login');
-            } else {
-            const role = authStore.userRole;
-
-            if (role === 'admin' || role === 'operator') {
-                next({ name: 'TicketDetails', params: { id: to.params.id } });
-            } else {
-                next({ name: 'TicketUser', params: { id: to.params.id } });
-            }
-            }
-        }
-    },
-    {
-        path: '/ticket/details/:id',
-        name: 'TicketDetails',
-        component: () => import('@/views/TicketDetails.vue'),
-    },
-    {
-        path: '/ticket/user/:id',
-        name: 'TicketUser',
-        component: () => import('@/views/TicketUser.vue'),
-    },
-
-    */
     { 
         path: '/all-tickets', 
         component: AllTickets,
