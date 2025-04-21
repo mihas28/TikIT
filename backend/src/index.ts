@@ -510,7 +510,7 @@ app.get('/users', authenticateJWT, authorizeRoles('admin'), async (req: Request,
 });
 
 // **Pridobitev vseh osnovnih podatkov o uporabnikih (brez gesla)**
-app.get('/users/essential', authenticateJWT, authorizeRoles('admin'), async (req: Request, res: Response) => {
+app.get('/users/essential', authenticateJWT, authorizeRoles('admin', 'operator'), async (req: Request, res: Response) => {
     try {
         const users = await getAllUsersEssential();
         res.status(200).json(users);
