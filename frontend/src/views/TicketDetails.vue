@@ -295,8 +295,6 @@ const saveChangesAwaiting = async () => {
       //showResolutionForm.value = !showResolutionForm.value;
       return;
     }
-    await updateTicketStatus(Number(ticketId.value), 'awaiting info');
-    ticket.value.ticket.state = 'awaiting info';
 
     const text = "Zahtevek "+ ticketId.value +" je v stanju čakanja na odziv, s sporočilom:\n" + awaitingInfoReason.value;
 
@@ -308,6 +306,10 @@ const saveChangesAwaiting = async () => {
       };
       socket.emit("sendMessage", commentData);
     }
+
+    await updateTicketStatus(Number(ticketId.value), 'awaiting info');
+    ticket.value.ticket.state = 'awaiting info';
+    
   } catch (error) {
     console.error("Napaka pri zapiranju zahtevka:", error);
   }

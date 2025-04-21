@@ -29,7 +29,8 @@ dotenv.config();
 
 const allowedOrigins = [
     'http://localhost:5173',
-    'http://67.221.248.15'
+    'http://67.221.248.15',
+    'https://tikit.si'
 ];
 
 const app = express();
