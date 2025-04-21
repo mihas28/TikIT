@@ -4,15 +4,16 @@ import { Bar } from 'vue-chartjs'
 import html2pdf from 'html2pdf.js'
 import {
   Chart as ChartJS,
-  Title,
+  BarElement,
+  BarController,
+  LineElement,
+  LineController,
+  CategoryScale,
+  LinearScale,
+  PointElement,
   Tooltip,
   Legend,
-  ArcElement,
-  BarElement,
-  LineElement,
-  PointElement,
-  CategoryScale,
-  LinearScale
+  Title
 } from 'chart.js'
 
 import {
@@ -26,9 +27,16 @@ import {
 } from '@/api/api'
 
 ChartJS.register(
-  Title, Tooltip, Legend,
-  ArcElement, BarElement, LineElement, PointElement,
-  CategoryScale, LinearScale
+  BarElement,
+  BarController,
+  LineElement,
+  LineController,
+  PointElement,
+  CategoryScale,
+  LinearScale,
+  Tooltip,
+  Legend,
+  Title
 )
 
 const summaryRef = ref<HTMLElement | null>(null)

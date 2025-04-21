@@ -1290,9 +1290,9 @@ export const getMonthlyTicketStats = async () => {
       SELECT t.ticket_id, t.title, t.description, CASE WHEN impact = 1 AND urgency = 1 THEN 'P1' WHEN impact = 2 AND urgency = 1 THEN 'P2' WHEN impact = 3 AND urgency = 1 THEN 'P3' WHEN impact = 1 AND urgency = 2 THEN 'P2' WHEN impact = 1 AND urgency = 3 THEN 'P3' WHEN impact = 2 AND urgency = 2 THEN 'P3' WHEN impact = 3 AND urgency = 2 THEN 'P4' WHEN impact = 2 AND urgency = 3 THEN 'P4' WHEN impact = 3 AND urgency = 3 THEN 'P4' END AS priority, t.type, t.created_at, t.resolved_at, t.state, t.close_code, t.close_notes, t.accept_sla_breach
       FROM ticket t, users u, company c
       WHERE t.caller_id = u.user_id AND u.company_id = c.company_id AND c.company_id = $1
-        AND t.created_at BETWEEN $2 AND $3
+        AND t.created_at BETWEEN $2 AND NOW()
       ORDER BY created_at ASC
-    `, [companyId, from, to])
+    `, [companyId, from])
   
     return result.rows
   }
@@ -1312,9 +1312,9 @@ export const getMonthlyTicketStats = async () => {
         AND u.company_id = c.company_id 
         AND tw.user_id = u2.user_id
         AND c.company_id = $1
-        AND t.created_at BETWEEN $2 AND $3
+        AND t.created_at BETWEEN $2 AND NOW()
         ORDER BY t.created_at ASC;
-    `, [companyId, from, to])
+    `, [companyId, from])
   
     return result.rows
   }
