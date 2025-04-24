@@ -375,15 +375,16 @@ const reopenTicket = async () => {
 
 // **Funkcija za preklic zahtevka**
 const cancelTicket = async () => {
+  let reason: string | null = null;
   try {
-    if (confirm("Ali ste prepričani, da želite preklicati zahtevek ID: "+ ticketId.value +"?"))
+    if ((reason = prompt("Ali ste prepričani, da želite preklicati zahtevek ID: "+ ticketId.value +"?\nVnesite razlog za preklic:")) !== null && (reason !== '')) 
     {
       await updateTicketStatus(Number(ticketId.value), 'cancelled');
       ticket.value.ticket.state = 'cancelled';
       // Onemogoči vsa vnosna polja in gumbe
       isTicketEditable.value = false;
 
-      const text = "Zahtevek "+ ticketId.value +" je bil preklican!";
+      const text = "Zahtevek "+ ticketId.value +" je bil preklican!\nRazlog za preklic:\n" + reason;
       // Dodaj zapis v komunikacijo
       const commentData = {
         ticket_id: ticketId.value,
@@ -1200,7 +1201,7 @@ const redirectToParentTicket = () => {
         <!-- Inženir -->
         <div class="form-group">
           <label for="engineer">Reševalec</label>
-          <input class="form-control" :disabled="!isTicketEditable" id="engineer" v-model="engineerSearch" @focus="showDropdowns.engineer = true" @input="getDataFunction" @dblclick="getDetails('assignee', ticket.primary[0].user_id)" required/>
+          <input class="form-control" :disabled="!isTicketEditable" id="engineer" v-model="engineerSearch" @focus="showDropdowns.engineer = true" @input="getDataFunction" @dblclick="getDetails('assignee', ticket.primary[0].user_id)" placeholder="Dodaj primarnega reševalca" required/>
           <ul v-if="showDropdowns.engineer">
             <li v-for="user in filteredEngineers" :key="user.id" @click="selectEngineer(user)">
               {{ user.name }}
@@ -1225,7 +1226,7 @@ const redirectToParentTicket = () => {
         <div class="form-group">
           <label>Dodatni reševalci</label>
             <div class="dropdown-container">
-            <input class="form-control" :disabled="!isTicketEditable" v-model="resolverSearch" @focus="showDropdowns.additional = true" type="text" placeholder="Dodaj reševalca" @input="getDataFunction" />
+            <input class="form-control" :disabled="!isTicketEditable" v-model="resolverSearch" @focus="showDropdowns.additional = true" type="text" placeholder="Dodaj pomožnega reševalca" @input="getDataFunction" />
             <ul v-if="showDropdowns.additional">
               <li v-for="user in filteredResolvers" :key="user.id" @click="addResolver(user)">
                 {{ user.name }}

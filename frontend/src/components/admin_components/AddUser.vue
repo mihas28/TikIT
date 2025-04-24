@@ -66,6 +66,12 @@ const handleAddUser = async () => {
     return;
   }
 
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(newUser.value.email)) {
+    error.value = 'Neveljaven email uporabnika';
+    return;
+  }
+
   if (newUser.value.password !== newUser.value.password2) {
     error.value = 'Gesli se ne ujemata!';
     return;

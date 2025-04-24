@@ -13,8 +13,8 @@ const userRole = authStore.getUserRole;
 // Navigacijske postavke glede na vlogo uporabnika
 const menuItems = ref([
     { name: 'Nastavitve', icon: 'bi-gear', path: '/settings', roles: ['user', 'operator', 'admin'] },
-    { name: 'Moji zahtevki', icon: 'bi-list-check', path: '/my-tickets', roles: ['user', 'operator', 'admin'] },
-    { name: 'Ustvari zahtevek', icon: 'bi-plus-circle', path: '/create-ticket', roles: ['user', 'operator', 'admin'] },
+    { name: 'Moji zahtevki', icon: 'bi-list-check', path: '/my-tickets', roles: ['user'] },
+    { name: 'Ustvari zahtevek', icon: 'bi-plus-circle', path: '/create-ticket', roles: ['user'] },
 
     { name: 'Ustvari zahtevek po meri', icon: 'bi-pencil-square', path: '/custom-ticket', roles: ['operator', 'admin'] },
     { name: 'Moji dodeljeni zahtevki', icon: 'bi-clipboard-check', path: '/assigned-tickets', roles: ['operator', 'admin'] },

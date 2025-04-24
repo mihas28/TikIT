@@ -57,6 +57,12 @@ const saveUserChanges = async () => {
     return;
   }
 
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(props.user.email)) {
+    error.value = 'Neveljaven email uporabnika';
+    return;
+  }
+
   isLoading.value = true;
   error.value = null;
 

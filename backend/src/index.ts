@@ -793,14 +793,14 @@ app.get('/tickets/essential', authenticateJWT, authorizeRoles('admin', 'operator
 
 // **Pridobitev vseh zahtevkov, katerih je klicatelj user_id**
 // @ts-ignore
-app.get('/tickets/essential/:ticket_id', authenticateJWT, authorizeRoles('admin', 'operator', 'user'), async (req: Request, res: Response) => {
+app.get('/tickets/essential/:user_id', authenticateJWT, authorizeRoles('user'), async (req: Request, res: Response) => {
     try {
-        const ticket_id = parseInt(req.params.ticket_id, 10);
-        if (isNaN(ticket_id)) {
-            return res.status(400).json({ error: 'Neveljaven ticket_id' });
+        const user_id = parseInt(req.params.user_id, 10);
+        if (isNaN(user_id)) {
+            return res.status(400).json({ error: 'Neveljaven user_id' });
         }
 
-        const tickets = await getTicketEssential(ticket_id);
+        const tickets = await getTicketEssential(user_id);
         res.status(200).json(tickets);
     } catch (error) {
         console.error('Napaka pri pridobivanju zahtevkov:', error);
@@ -827,7 +827,7 @@ app.get('/tickets/my/:user_id', authenticateJWT, authorizeRoles('admin', 'operat
 
 // **Pridobitev vseh specifičnega zahtevka, katerega je klicatelj je user_id**
 // @ts-ignore
-app.get('/tickets/essential/:ticket_id/:user_id', authenticateJWT, authorizeRoles('admin', 'operator', 'user'), async (req: Request, res: Response) => {
+app.get('/tickets/essential/:ticket_id/:user_id', authenticateJWT, authorizeRoles('user'), async (req: Request, res: Response) => {
     try {
         const ticket_id = parseInt(req.params.ticket_id, 10);
         const user_id = parseInt(req.params.user_id, 10);
@@ -951,7 +951,7 @@ export const getImpactAndUrgencyFromPriority = (priority: string): { impact: str
 
 // **Dodajanje novega zahtevka**
 // @ts-ignore
-app.post('/tickets/create', authenticateJWT, authorizeRoles('admin', 'operator', 'user'), async (req: Request, res: Response) => {
+app.post('/tickets/create', authenticateJWT, authorizeRoles('user'), async (req: Request, res: Response) => {
     try {
         const { title, description, priority, type, caller_id, group_id, contract_id, parent_ticket_id } = req.body;
 
@@ -976,7 +976,7 @@ app.post('/tickets/create', authenticateJWT, authorizeRoles('admin', 'operator',
         }
 
         await sendEmail(group_email, "TikIT zahtevek ID: [" + newTicket.ticket_id + "] - " + title, "Ustvarjen je bil nov zahtevek z ID: " + newTicket.ticket_id + ".\n\n" + description);
-        await sendEmail(from, "TikIT zahtevek ID: [" + newTicket.ticket_id + "] - " + title, "Težavo bomo poskušali odpravit v najkrajšem možnem času.\nProsimo vas da odgorarjate v na to sporočilo." + "\n\n" + description);
+        await sendEmail(from, "TikIT zahtevek ID: [" + newTicket.ticket_id + "] - " + title, "Težavo bomo poskušali odpravit v najkrajšem možnem času.\nProsimo vas, da za nadaljnje komentarje odgorarjate na to sporočilo." + "\n\n" + description);
 
         res.status(201).json(newTicket);
     } catch (error) {
@@ -1070,10 +1070,16 @@ app.post('/time-worked', authenticateJWT, authorizeRoles('admin', 'operator'), a
       if (!from) {
           return console.error('Email uporabnika ni najden');
       }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(from)) {
+          return console.error('Neveljaven email uporabnika');
+      }
       
+      const newTimeWorked = await createTimeWorked(user_id, ticket_id, 0, '', primary);
+
       await sendEmail(from, "TikIT zahtevek ID: [" + ticket_id + "] - " + title, "Na zahtevek z ID: " + ticket_id + " ste bili dodeljeni kot " + primary ? "primarni" : "sekundarni" + " reševalec.\n\n" + description);
 
-      const newTimeWorked = await createTimeWorked(user_id, ticket_id, 0, '', primary);
       res.status(201).json(newTimeWorked);
   } catch (error) {
       console.error('Napaka pri dodajanju vnosa delovnega časa:', error);

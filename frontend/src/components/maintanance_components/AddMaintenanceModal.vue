@@ -24,6 +24,7 @@ const submit = async () => {
   }
 
   const newMaintenance = {
+    maintenance_id: null,
     title: title.value,
     description: description.value,
     from_date: from.value,
@@ -32,7 +33,7 @@ const submit = async () => {
     ticket_id: ticketId.value || null,
   }
 
-  await addMaintenance(newMaintenance);
+  newMaintenance.maintenance_id = (await addMaintenance(newMaintenance)).maintenance_id;
 
   emit('added', newMaintenance);
 }
