@@ -178,21 +178,30 @@ const resolvers = ref({
 });
 
 const impactOptions = [
-  { value: '3', label: 'Low' },
-  { value: '2', label: 'Medium' },
-  { value: '1', label: 'High' }
+  { value: '3', label: 'Nizek' },
+  { value: '2', label: 'Srednji' },
+  { value: '1', label: 'Visok' }
 ];
 
 const urgencyOptions = [
-  { value: '3', label: 'Low' },
-  { value: '2', label: 'Medium' },
-  { value: '1', label: 'High' }
+  { value: '3', label: 'Nizka' },
+  { value: '2', label: 'Srednja' },
+  { value: '1', label: 'Visoka' }
 ];
 
 const typeOptions = [
   { value: 'incident', label: 'Incident' },
-  { value: 'service request', label: 'Request' }
+  { value: 'service request', label: 'Zahteva' }
 ];
+
+const stateLabels: Record<string, string> = {
+  new: 'Nov',
+  open: 'Odprt',
+  'awaiting info': 'V čakanju',
+  resolved: 'Razrešen',
+  closed: 'Zaključen',
+  cancelled: 'Preklican'
+}
 
 const slaAccepted = ref(true);
 const acceptSlaRemaining = ref<number | null>(null);
@@ -1108,7 +1117,7 @@ const redirectToParentTicket = () => {
         <!-- status -->
         <div class="form-group">
           <label for="status">Status</label>
-            <input class="form-control" v-model="ticket.ticket.state" id="status" disabled />
+          <input class="form-control" :value="stateLabels[ticket.ticket.state] || ticket.ticket.state" id="status" disabled />
         </div>
         <!-- Priority -->
         <div class="form-group">

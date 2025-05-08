@@ -51,6 +51,11 @@ const stateMap: { [key: string]: { text: string; icon: string } } = {
   "closed": { text: "Zaključeno", icon: "bi bi-check-circle-fill text-secondary" }, // Siva polna kljukica
 };
 
+const typeLabels: Record<string, string> = {
+  incident: 'Incident',
+  'service request': 'Zahteva'
+}
+
 const filteredTickets = computed(() => {
   let sortedTickets = [...tickets.value];
 
@@ -193,7 +198,7 @@ const shortenText = (text: string, maxLength: number = 70) =>
             </td>
             <td>{{ shortenText(ticket.assignment_group) }}</td>
             <td>{{ shortenText(ticket.assigned_to || 'Ni dodeljeno') }}</td>
-            <td>{{ shortenText(ticket.type) }}</td>
+            <td>{{ typeLabels[ticket.type] || ticket.type }}</td>
           </tr>
         </tbody>
       </table>

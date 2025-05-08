@@ -65,6 +65,20 @@ const priorityMap: { [key: string]: { text: string; color: string } } = {
   "4": { text: "P4 - Nizka", color: "green" }
 };
 
+const stateLabels: Record<string, string> = {
+  new: 'Nov',
+  open: 'Odprt',
+  'awaiting info': 'V čakanju',
+  resolved: 'Razrešen',
+  closed: 'Zaključen',
+  cancelled: 'Preklican'
+}
+
+const typeLabels: Record<string, string> = {
+  incident: 'Incident',
+  'service request': 'Zahteva'
+}
+
 onMounted(async () => {
   try {
     ticketId.value = route.params.id.toString();
@@ -244,7 +258,7 @@ const openDocument = (base64String: string, filename: string = "dokument.pdf") =
                 </div>
                 <div class="incident-field">
                 <label>Status</label>
-                <div>{{ ticket.state }}</div>
+                <div>{{ stateLabels[ticket.state] || ticket.state }}</div>
                 </div>
             </div>
         </div>
@@ -272,7 +286,7 @@ const openDocument = (base64String: string, filename: string = "dokument.pdf") =
         </div>
         <div class="form-group">
           <label>Tip</label>
-          <div>{{ ticket.type }}</div>
+          <div>{{ typeLabels[ticket.type] || ticket.type }}</div>
         </div>
       </div>
     </div>

@@ -44,15 +44,15 @@ const ticket = ref({
 });
 
 const impactOptions = [
-  { value: '3', label: 'Low' },
-  { value: '2', label: 'Medium' },
-  { value: '1', label: 'High' }
+  { value: '3', label: 'Nizek' },
+  { value: '2', label: 'Srednji' },
+  { value: '1', label: 'Visok' }
 ];
 
 const urgencyOptions = [
-  { value: '3', label: 'Low' },
-  { value: '2', label: 'Medium' },
-  { value: '1', label: 'High' }
+  { value: '3', label: 'Nizka' },
+  { value: '2', label: 'Srednja' },
+  { value: '1', label: 'Visoka' }
 ];
 
 const typeOptions = [
@@ -409,7 +409,7 @@ onMounted(() => {
         </div>
 
         <div class="form-group">
-          <label for="group">Assigment group</label>
+          <label for="group">Skupina</label>
             <div class="dropdown-container">
             <input class="form-control" id="group" v-model="groupSearch" @focus="showDropdowns.group = true" type="text" placeholder="Iskanje skupine" required />
             <ul v-if="showDropdowns.group">

@@ -14,6 +14,18 @@ const comments = ref<any[]>([])
 const resolvers = ref<any[]>([])
 const isLoading = ref(false);
 
+const impactLabels: Record<number, string> = {
+  1: 'Visok',
+  2: 'Srednji',
+  3: 'Nizek'
+}
+
+const urgencyLabels: Record<number, string> = {
+  1: 'Visoka',
+  2: 'Srednja',
+  3: 'Nizka'
+}
+
 const reportContent = ref<HTMLElement | null>(null)
 
 const formatDate = (dateStr: string): string => {
@@ -111,8 +123,8 @@ const totalHours = () => {
         <p class="comment-text"><strong>Opis:</strong> {{ ticket.description }}</p>
         <p><strong>Vrsta:</strong> <span v-if="ticket.type === 'service request'">Zahtevek</span><span v-else>Incident</span></p>
         <p v-if="ticket.state === 'resolved'"><strong>Stanje:</strong> Razrešeno</p><p v-if="ticket.state === 'closed'"><strong>Stanje:</strong> Zaprto</p>
-        <p><strong>Vpliv:</strong> {{ ticket.impact }}</p>
-        <p><strong>Nujnost:</strong> {{ ticket.urgency }}</p>
+        <p><strong>Vpliv:</strong> {{ impactLabels[ticket.impact] || ticket.impact }}</p>
+        <p><strong>Nujnost:</strong> {{ urgencyLabels[ticket.urgency] || ticket.urgency }}</p>
         <p v-if="ticket.parent_ticket_id"><strong>Starševski zahtevek:</strong> #{{ ticket.parent_ticket_id }}</p>
         <p><strong>Ustvarjen:</strong> {{ formatDate(ticket.created_at) }}</p>
         <p><strong>Zaključen:</strong> {{ formatDate(ticket.resolved_at) }}</p>

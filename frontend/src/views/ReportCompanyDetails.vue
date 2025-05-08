@@ -36,6 +36,11 @@ const statusLabels = {
   cancelled: 'Preklicano'
 }
 
+const typeLabels: Record<string, string> = {
+  incident: 'Incident',
+  'service request': 'Zahteva'
+}
+
 onMounted(async () => {
   isLoading.value = true;
   company.value = await fetchCompanyDataById(String(companyId))
@@ -118,7 +123,7 @@ const exportToPDF = () => {
           <div v-for="ticket in tickets" :key="ticket.ticket_id" class="ticket-block mb-4 page-break-avoid">
             <p><strong>#{{ ticket.ticket_id }}</strong> – {{ ticket.title }}</p>
             <p><strong>Opis:</strong> {{ ticket.description }}</p>
-            <p><strong>Tip:</strong> {{ ticket.type }} | <strong>Prioriteta:</strong> {{ ticket.priority }} | <strong>Stanje:</strong> {{ statusLabels[ticket.state] }}</p>
+            <p><strong>Tip:</strong> {{ typeLabels[ticket.type] || ticket.type }} | <strong>Prioriteta:</strong> {{ ticket.priority }} | <strong>Stanje:</strong> {{ statusLabels[ticket.state] }}</p>
             <p><strong>Ustvarjen:</strong> {{ formatDate(ticket.created_at) }} | <strong>Razrešen:</strong> {{ formatDate(ticket.resolved_at) }}</p>
 
             <p class="mt-2" v-if="ticket.state != 'new'"><strong>Poraba ur:</strong></p>
