@@ -12,7 +12,6 @@ const userRole = authStore.getUserRole;
 
 // Navigacijske postavke glede na vlogo uporabnika
 const menuItems = ref([
-    { name: 'Nastavitve', icon: 'bi-gear', path: '/settings', roles: ['user', 'operator', 'admin'] },
     { name: 'Moji zahtevki', icon: 'bi-list-check', path: '/my-tickets', roles: ['user'] },
     { name: 'Ustvari zahtevek', icon: 'bi-plus-circle', path: '/create-ticket', roles: ['user'] },
 
@@ -25,6 +24,8 @@ const menuItems = ref([
     { name: 'Statistike', icon: 'bi-bar-chart-line', path: '/statistics', roles: ['operator', 'admin'] },
 
     { name: 'Urejanje sistema', icon: 'bi-tools', path: '/admin-panel', roles: ['admin'] },
+
+    { name: 'Nastavitve', icon: 'bi-gear', path: '/settings', roles: ['user', 'operator', 'admin'] },
 ]);
 
 const toggleSidebar = () => {

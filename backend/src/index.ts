@@ -1078,7 +1078,7 @@ app.post('/time-worked', authenticateJWT, authorizeRoles('admin', 'operator'), a
       
       const newTimeWorked = await createTimeWorked(user_id, ticket_id, 0, '', primary);
 
-      await sendEmail(from, "TikIT zahtevek ID: [" + ticket_id + "] - " + title, "Na zahtevek z ID: " + ticket_id + " ste bili dodeljeni kot " + primary ? "primarni" : "sekundarni" + " reševalec.\n\n" + description);
+      await sendEmail(from, "TikIT zahtevek ID: [" + ticket_id + "] - " + title, "Na zahtevek z ID: " + ticket_id + " ste bili dodeljeni kot " + (primary ? "primarni" : "sekundarni") + " reševalec.\n\n" + description);
 
       res.status(201).json(newTimeWorked);
   } catch (error) {
