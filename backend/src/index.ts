@@ -610,8 +610,8 @@ app.put('/users/:user_id', authenticateJWT, authorizeRoles('admin', 'operator'),
           return res.status(400).json({ error: 'Neveljaven user_id' });
       }
 
-      const { first_name, last_name, email, phone_number, role, company_id, group_id } = req.body;
-      const updatedUser = await updateUser(user_id, first_name, last_name, email, phone_number, role, company_id, group_id);
+      const { first_name, last_name, email, phone_number, role, company_id, group_id, username } = req.body;
+      const updatedUser = await updateUser(user_id, first_name, last_name, email, phone_number, role, company_id, group_id, username);
 
       if (!updatedUser) {
           return res.status(404).json({ error: 'Uporabnik ni najden' });

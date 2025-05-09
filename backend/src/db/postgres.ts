@@ -382,7 +382,8 @@ export const updateUser = async (
     phone_number: string,
     role: string,
     company_id: number,
-    group_id: number
+    group_id: number,
+    username: string
 ) => {
     try {
         const result = await pool.query(
@@ -394,10 +395,11 @@ export const updateUser = async (
             role = $5, 
             company_id = $6, 
             group_id = $7, 
+            username = $8,
             updated_at = NOW()
-            WHERE user_id = $8 
+            WHERE user_id = $9 
             RETURNING *`,
-            [first_name, last_name, email, phone_number, role, company_id, group_id, user_id]
+            [first_name, last_name, email, phone_number, role, company_id, group_id, username, user_id]
         );
 
         return result.rows[0] || null;
