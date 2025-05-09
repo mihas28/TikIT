@@ -79,7 +79,7 @@ const handleAddGroup = async () => {
   background: white;
   padding: 20px;
   border-radius: 5px;
-  width: 300px;
+  width: 400px;
 }
 .bt-save {
   background-color: #4DD6AA;
@@ -97,4 +97,5 @@ const handleAddGroup = async () => {
   margin-top: 10px;
   cursor: pointer;
 }
+button, input, form, option { border-radius: 5px; }
 </style>

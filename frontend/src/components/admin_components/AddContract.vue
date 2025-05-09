@@ -148,4 +148,5 @@ const addNewContract = async () => {
   color: red;
   margin-bottom: 10px;
 }
+button, input, form, option { border-radius: 5px; }
 </style>

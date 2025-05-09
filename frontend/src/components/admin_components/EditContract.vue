@@ -63,7 +63,7 @@ const saveChanges = async () => {
     return;
   }
 
-  if (props.contract.end_date > props.contract.start_date) {
+  if (props.contract.end_date < props.contract.start_date) {
     errorMessage.value = 'Datum začetka ne more biti kasnejši od datuma konca!';
     return;
   }

@@ -172,7 +172,7 @@ const handleAddUser = async () => {
   background: white;
   padding: 20px;
   border-radius: 5px;
-  width: 300px;
+  width: 400px;
 }
 
 .bt-save {
