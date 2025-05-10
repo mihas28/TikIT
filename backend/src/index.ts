@@ -964,7 +964,7 @@ app.post('/tickets/create', authenticateJWT, authorizeRoles('user'), async (req:
         }
   
         const newTicket = await createTicket(title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id, accepted_at);
-        createChat(newTicket.ticket_id, { type: "text", content: "Ticket z številko " + newTicket.ticket_id + " uspešno ustvarjen dne " + formatDate(new Date()), filename: ''}, false, "System");
+        createChat(newTicket.ticket_id, { type: "text", content: "Ticket z številko " + newTicket.ticket_id + " uspešno ustvarjen dne " + formatDate(new Date()), filename: ''}, false, "Sistem TikIT");
 
         const group_email = await getGroupEmailById(group_id);
         if (!group_email) {
@@ -1624,7 +1624,7 @@ const oAuth2Client = new google.auth.OAuth2(
   
         const newTicket = await createTicket(title, description, impact, urgency, state, type, caller_id, parent_ticket_id, group_id, contract_id, accepted_at);
         const text = "Ticket z številko " + newTicket.ticket_id + " uspešno ustvarjen dne " + formatDate(new Date()) + "."
-        createChat(newTicket.ticket_id, { type: "text", content: text, filename: ''}, false, "System");
+        createChat(newTicket.ticket_id, { type: "text", content: text, filename: ''}, false, "Sistem TikIT");
 
         await sendEmail(group_email, "TikIT zahtevek ID: [" + newTicket.ticket_id + "] - " + title, "Ustvarjen je bil nov zahtevek z ID: " + newTicket.ticket_id + ".\n\n" + description);
         await sendEmail(from, "TikIT zahtevek ID: [" + newTicket.ticket_id + "] - " + title, "Težavo bomo poskušali odpravit v najkrajšem možnem času.\nProsimo vas, da za nadaljnje komentarje odgorarjate na to sporočilo." + "\n\n" + description);

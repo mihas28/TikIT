@@ -297,7 +297,7 @@ const openDocument = (base64String: string, filename: string = "dokument.pdf") =
       
       <!-- Vnos polja za javna sporočila -->
       <div class="comment-inputs">
-        <textarea :disabled="!isTicketEditable" v-model="newPublicComment" placeholder="Vnesi komentar..." class="input-field"></textarea>
+        <textarea :disabled="!isTicketEditable" v-model="newPublicComment" placeholder="Vnesi komentar..." class="input-field public-comment"></textarea>
         <div class="ticket-nav1">
           <button :disabled="!isTicketEditable" @click="sendComment(true)" class="btn-send">Pošlji</button>
         </div>
@@ -598,4 +598,10 @@ li:hover {
   background: #f0f0f0;
   cursor: pointer;
 }
+
+.public-comment {
+  background-color: #e6f7ff;
+  border-left: 5px solid #00B0BE;
+}
+
 </style>

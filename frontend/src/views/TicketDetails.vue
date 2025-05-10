@@ -1260,7 +1260,7 @@ const redirectToParentTicket = () => {
       <!-- Opis (čez celo širino) -->
       <div class="form-group full-width">
         <label for="description">Opis</label>
-        <textarea class="form-control" :disabled="!isTicketEditable" id="description" v-model="ticket.ticket.description" required></textarea>
+        <textarea class="form-control description" :disabled="!isTicketEditable" id="description" v-model="ticket.ticket.description" required></textarea>
       </div>
 
       <!-- Razslog za Accept SLA breach -->
@@ -1310,14 +1310,14 @@ const redirectToParentTicket = () => {
       
       <!-- Vnos polja za javna in zasebna sporočila -->
       <div class="comment-inputs">
-        <textarea  :disabled="!isTicketEditable" v-model="newPublicComment" placeholder="Vnesi javni komentar..." class="input-field form-control"></textarea>
+        <textarea  :disabled="!isTicketEditable" v-model="newPublicComment" placeholder="Vnesi javni komentar..." class="input-field form-control public-comment"></textarea>
         <div class="ticket-nav1">
-          <button :disabled="!isTicketEditable" @click="sendComment(true)" class="btn-send">Pošlji</button>
+          <button :disabled="!isTicketEditable" @click="sendComment(true)" class="btn-send"> &nbsp;&nbsp;Pošlji javno&nbsp;&nbsp; </button>
         </div>
 
-        <textarea :disabled="!isTicketEditable" v-model="newPrivateComment" placeholder="Vnesi zasebni komentar..." class="input-field form-control"></textarea>
+        <textarea :disabled="!isTicketEditable" v-model="newPrivateComment" placeholder="Vnesi zasebni komentar..." class="input-field form-control private-comment"></textarea>
         <div class="ticket-nav1">
-          <button :disabled="!isTicketEditable" @click="sendComment(false)" class="btn-send">Pošlji</button>
+          <button :disabled="!isTicketEditable" @click="sendComment(false)" class="btn-send">Pošlji zasebno</button>
         </div>
       </div>
 
@@ -1719,4 +1719,17 @@ li:hover {
   word-break: break-word;
 }
 
+.public-comment {
+  background-color: #e6f7ff;
+  border-left: 5px solid #00B0BE;
+}
+
+.private-comment {
+  background-color: #fff3e6;
+  border-left: 5px solid #ff7b00;
+}
+
+.description {
+  height: 300px;
+}
 </style>
