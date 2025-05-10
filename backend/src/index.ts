@@ -1605,8 +1605,8 @@ const oAuth2Client = new google.auth.OAuth2(
         }
 
         const state = 'new';
-        const impact = '3';
-        const urgency = '3';
+        const impact = '2';
+        const urgency = '2';
         const type = 'incident';
         const group_id = additional_info.group_id;
         const contract_id = additional_info.contract_id;
@@ -1627,7 +1627,7 @@ const oAuth2Client = new google.auth.OAuth2(
         createChat(newTicket.ticket_id, { type: "text", content: text, filename: ''}, false, "System");
 
         await sendEmail(group_email, "TikIT zahtevek ID: [" + newTicket.ticket_id + "] - " + title, "Ustvarjen je bil nov zahtevek z ID: " + newTicket.ticket_id + ".\n\n" + description);
-        await sendEmail(from, "TikIT zahtevek ID: [" + newTicket.ticket_id + "] - " + title, "Težavo bomo poskušali odpravit v najkrajšem možnem času.\nProsimo vas da odgorarjate v na to sporočilo." + "\n\n" + description);
+        await sendEmail(from, "TikIT zahtevek ID: [" + newTicket.ticket_id + "] - " + title, "Težavo bomo poskušali odpravit v najkrajšem možnem času.\nProsimo vas, da za nadaljnje komentarje odgorarjate na to sporočilo." + "\n\n" + description);
         
     } catch (error) {
         console.error(`Napaka pri pridobivanju uporabnika ID=${caller_id}:`, error);
@@ -1788,14 +1788,16 @@ const oAuth2Client = new google.auth.OAuth2(
         const email = match ? match[1] : null;
         if (!email) {
             console.error('Email is null or invalid');
-            return;
+            continue;
         }
+
         const userId = await getUserIdByEmail(email);
+
         if (userId === null)
         {
-            await sendEmail(from, "Uporabnik ne obstaja", "Uporabnik ne obstaja");
+            await sendEmail(from, "Uporabnik ne obstaja", "Uporabnik ne obstaja!");
             lastSentId = message.id!;
-            return;
+            continue;
         }
 
         const body = bodyData
