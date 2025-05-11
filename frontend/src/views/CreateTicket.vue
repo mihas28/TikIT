@@ -141,7 +141,7 @@ const submitTicket = async () => {
       <!-- Opis (čez celo širino) -->
       <div class="form-group full-width">
         <label>Opis</label>
-        <textarea class="form-control" rows="5" v-model="description" placeholder="Opišite vašo zahtevo podrobneje..." />
+        <textarea class="form-control description" rows="5" v-model="description" placeholder="Opišite vašo zahtevo podrobneje..." />
       </div> 
 
       <button class="submit-btn">Ustvari zahtevek</button>
@@ -221,4 +221,7 @@ input, select, textarea {
   }
 }
 
+.description {
+  height: 300px;
+}
 </style>

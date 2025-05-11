@@ -320,7 +320,7 @@ onMounted(() => {
       <!-- Opis (čez celo širino) -->
       <div class="form-group full-width">
         <label for="description">Opis</label>
-        <textarea class="form-control" id="description" v-model="ticket.description" placeholder="Vnesi opis zahtevka" required></textarea>
+        <textarea class="form-control description" id="description" v-model="ticket.description" placeholder="Vnesi opis zahtevka" required></textarea>
       </div>
 
       <div class="form-row">
@@ -581,5 +581,9 @@ li:hover {
   .form-row {
     flex-direction: column;
   }
+}
+
+.description {
+  height: 200px;
 }
 </style>

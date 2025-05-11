@@ -918,8 +918,15 @@ const handleFileDrop = (event: DragEvent) => {
   event.preventDefault();
   const file = event.dataTransfer?.files[0];
 
-  if (file && (file.type === "application/pdf" || file.type.startsWith("image/"))) {
+  if (!file) return;
+
+  const isValidType = file.type === "application/pdf" || file.type.startsWith("image/");
+  const isValidSize = file.size <= 1 * 1024 * 1024; // 1MB
+
+  if (isValidType && isValidSize) {
     uploadedFile.value = file;
+  } else if (!isValidSize) {
+    alert("Največja dovoljena velikost datoteke je 1 MB!");
   } else {
     alert("Dovoljene so samo slike (.jpg, .png) in PDF datoteke!");
   }
@@ -927,8 +934,18 @@ const handleFileDrop = (event: DragEvent) => {
 
 const handleFileSelect = (event: Event) => {
   const input = event.target as HTMLInputElement;
-  if (input.files && input.files.length > 0) {
-    uploadedFile.value = input.files[0];
+  if (!input.files || input.files.length === 0) return;
+
+  const file = input.files[0];
+  const isValidType = file.type === "application/pdf" || file.type.startsWith("image/");
+  const isValidSize = file.size <= 1 * 1024 * 1024; // 1MB
+
+  if (isValidType && isValidSize) {
+    uploadedFile.value = file;
+  } else if (!isValidSize) {
+    alert("Največja dovoljena velikost datoteke je 1 MB!");
+  } else {
+    alert("Dovoljene so samo slike (.jpg, .png) in PDF datoteke!");
   }
 };
 
