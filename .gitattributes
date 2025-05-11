@@ -1,1 +1,2 @@
-database/* linguist-vendored
+photos/** linguist-vendored
+database/** linguist-vendored
