@@ -979,6 +979,10 @@ const submitSlaBreachReason = async (reason: string) => {
 
 
 onMounted(async () => {
+  if (authStore.getUserRole === 'user') {
+    router.replace('/my-tickets');
+  }
+
   const regex1 = /^Zahtevek (\d+) je bil razrešen z kodo:\n(duplicate|cancelled|other|solved)\nin z opisom:\n(.+)$/;
   const regex2 = /Zahtevek (\d+) je v stanju čakanja na odziv, s sporočilom:\n([\s\S]+)/;
 

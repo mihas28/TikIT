@@ -1,9 +1,23 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import UserList from '@/components/admin_components/UserList.vue';
 import CompanyList from '../components/admin_components/CompanyList.vue';
 import GroupList from '../components/admin_components/GroupList.vue';
 import ContractList from '../components/admin_components/ContractList.vue';
+import { useAuthStore } from '../stores/authStore';
+import { useRouter } from 'vue-router';
+
+const authStore = useAuthStore();
+const router = useRouter();
+
+onMounted(async () => {
+  if (authStore.getUserRole === 'user') {
+    router.replace('/my-tickets');
+  }
+  if (authStore.getUserRole === 'operator') {
+    router.replace('/assigned-tickets');
+  }
+});
 
 const activeTab = ref('users');
 
