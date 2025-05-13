@@ -303,7 +303,30 @@ onMounted(() => {
   //document.removeEventListener("click", closeDropdowns)
 });
 
+const resetAllFieldsButton = () => {
+  resetAllFields();
 
+  ticket.value = {
+    title: '',
+    description: '',
+    impact: '',
+    urgency: '',
+    type: '',
+    parent_ticket_id: null,
+    state: '',
+    caller_id: 0,
+    group_id: 0,
+    contract_id: 0
+  };
+
+  companySearch.value = '';
+  callerSearch.value = '';
+  contractSearch.value = '';
+  engineerSearch.value = '';
+  resolverSearch.value = '';
+  groupSearch.value = '';
+  parentTicketSearch.value = '';
+};
 </script>
 
 <template>
@@ -327,23 +350,27 @@ onMounted(() => {
         <!-- Klicatelj -->
         <div class="form-group">
           <label for="caller">Klicatelj</label>
+          <div class="dropdown-container">
             <input class="form-control" v-model="callerSearch" id="caller" @focus="showDropdowns.caller = true" placeholder="Iskanje klicatelja" required />
             <ul v-if="showDropdowns.caller">
               <li v-for="user in filteredUsers" :key="user.id" @click="selectCaller(user)">
                 {{ user.name }}
-            </li>
-          </ul>
+              </li>
+            </ul>
+          </div>
         </div>
 
         <!-- Podjetje -->
         <div class="form-group">
           <label for="company">Podjetje</label>
+          <div class="dropdown-container">
             <input class="form-control" v-model="companySearch" id="company" @focus="showDropdowns.company = true" placeholder="Iskanje podjetja" required />
             <ul v-if="showDropdowns.company">
               <li v-for="company in filteredCompanies" :key="company.id" @click="selectCompany(company)">
                 {{ company.name }}
               </li>
             </ul>
+          </div>
         </div>
       </div>
 
@@ -352,24 +379,26 @@ onMounted(() => {
         <div class="form-group">
           <label for="contract">Pogodba</label>
           <div class="dropdown-container">
-          <input class="form-control" v-model="contractSearch" id="contract" @focus="showDropdowns.contract = true" type="text" placeholder="Iskanje pogodbe" required />
-          <ul v-if="showDropdowns.contract">
-            <li v-for="contract in filteredContracts" :key="contract.id" @click="selectContract(contract)">
-              {{ contract.name }} - {{ contract.status }} | {{ contract.description }}
-            </li>
-          </ul>
+            <input class="form-control" v-model="contractSearch" id="contract" @focus="showDropdowns.contract = true" type="text" placeholder="Iskanje pogodbe" required />
+            <ul v-if="showDropdowns.contract">
+              <li v-for="contract in filteredContracts" :key="contract.id" @click="selectContract(contract)">
+                {{ contract.name }} - {{ contract.status }} | {{ contract.description }}
+              </li>
+            </ul>
+          </div>
         </div>
-      </div>
 
         <!-- Inženir -->
         <div class="form-group">
           <label for="engineer">Reševalec</label>
-          <input class="form-control" id="engineer" v-model="engineerSearch" @focus="showDropdowns.engineer = true" placeholder="Iskanje reševalca" required/>
-          <ul v-if="showDropdowns.engineer">
-            <li v-for="user in filteredEngineers" :key="user.id" @click="selectEngineer(user)">
-              {{ user.name }}
-            </li>
-          </ul>
+          <div class="dropdown-container">
+            <input class="form-control" id="engineer" v-model="engineerSearch" @focus="showDropdowns.engineer = true" placeholder="Iskanje reševalca" required/>
+            <ul v-if="showDropdowns.engineer">
+              <li v-for="user in filteredEngineers" :key="user.id" @click="selectEngineer(user)">
+                {{ user.name }}
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
 
@@ -410,7 +439,7 @@ onMounted(() => {
 
         <div class="form-group">
           <label for="group">Skupina</label>
-            <div class="dropdown-container">
+          <div class="dropdown-container">
             <input class="form-control" id="group" v-model="groupSearch" @focus="showDropdowns.group = true" type="text" placeholder="Iskanje skupine" required />
             <ul v-if="showDropdowns.group">
               <li v-for="group in filteredGroups" :key="group.id" @click="selectGroup(group)">
@@ -453,9 +482,12 @@ onMounted(() => {
         </div>
       </div>  
 
+      <button type="button" class="reset-btn" @dblclick="resetAllFieldsButton()">Ponastavi vsa polja</button>
+
       <button type="submit" class="submit-btn">Ustvari zahtevek</button>
 
     </form>
+    <br><br>
   </div>
 </template>
 
@@ -565,7 +597,7 @@ li:hover {
   cursor: pointer;
 }
 
-/* Gumb */
+/* Gumba */
 .submit-btn {
   background-color: #00B0BE;
   color: white;
@@ -574,6 +606,16 @@ li:hover {
   cursor: pointer;
   border-radius: 5px;
   float: right;
+}
+
+.reset-btn {
+  background-color: #746EBC;
+  color: white;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+  border-radius: 5px;
+  float: left;
 }
 
 /* Responsive design */

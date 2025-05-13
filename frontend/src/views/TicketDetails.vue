@@ -1172,12 +1172,14 @@ const redirectToParentTicket = () => {
         <!-- Klicatelj -->
         <div class="form-group">
           <label for="caller">Klicatelj</label>
+          <div class="dropdown-container">
             <input class="form-control" :disabled="!isTicketEditable" v-model="callerSearch" id="caller" @focus="showDropdowns.caller = true" @input="getDataFunction" @dblclick="getDetails('caller', ticket.ticket.caller_id)" required />
             <ul v-if="showDropdowns.caller">
               <li v-for="user in filteredUsers" :key="user.id" @click="selectCaller(user)">
                 {{ user.name }}
-            </li>
-          </ul>
+              </li>
+            </ul>
+          </div>
         </div>
         <!-- Urgency -->
         <div class="form-group">
@@ -1194,17 +1196,19 @@ const redirectToParentTicket = () => {
         <!-- Podjetje -->
         <div class="form-group">
           <label for="company">Podjetje</label>
+          <div class="dropdown-container">
             <input class="form-control" :disabled="!isTicketEditable" v-model="companySearch" id="company" @focus="showDropdowns.company = true" @input="getDataFunction" @dblclick="getDetails('company', ticket.ticket.company_id)" required />
             <ul v-if="showDropdowns.company">
               <li v-for="company in filteredCompanies" :key="company.id" @click="selectCompany(company)">
                 {{ company.name }}
               </li>
             </ul>
+          </div>
         </div>
         <!-- Skupina -->
         <div class="form-group">
           <label for="group">Assigment group</label>
-            <div class="dropdown-container">
+          <div class="dropdown-container">
             <input class="form-control" :disabled="!isTicketEditable" id="group" v-model="groupSearch" @focus="showDropdowns.group = true" type="text" placeholder="Iskanje skupine" @input="getDataFunction" @dblclick="getDetails('group', ticket.ticket.group_id)" required />
             <ul v-if="showDropdowns.group">
               <li v-for="group in filteredGroups" :key="group.id" @click="selectGroup(group)">
@@ -1221,22 +1225,24 @@ const redirectToParentTicket = () => {
           <label for="parentTicket">Nadrejeni zahtevek</label>
           <div class="dropdown-container">         
             <input class="form-control" :disabled="!isTicketEditable" type="text" id="parentTicket" v-model="parentTicketSearch" @focus="showDropdowns.ticket = true" @input="getDataFunction" @dblclick="redirectToParentTicket" placeholder="Dodaj starševski zahtevek"/>
-              <ul v-if="showDropdowns.ticket">
-                <li v-for="ticket in filteredTickets" :key="ticket.id" @click="selectTicket(ticket)">
-                  {{ ticket.id }} | {{ ticket.name }}
-                </li>
-              </ul>
+            <ul v-if="showDropdowns.ticket">
+              <li v-for="ticket in filteredTickets" :key="ticket.id" @click="selectTicket(ticket)">
+                {{ ticket.id }} | {{ ticket.name }}
+              </li>
+            </ul>
           </div>
         </div>
         <!-- Inženir -->
         <div class="form-group">
           <label for="engineer">Reševalec</label>
-          <input class="form-control" :disabled="!isTicketEditable" id="engineer" v-model="engineerSearch" @focus="showDropdowns.engineer = true" @input="getDataFunction" @dblclick="getDetails('assignee', ticket.primary[0].user_id)" placeholder="Dodaj primarnega reševalca" required/>
-          <ul v-if="showDropdowns.engineer">
-            <li v-for="user in filteredEngineers" :key="user.id" @click="selectEngineer(user)">
-              {{ user.name }}
-            </li>
-          </ul>
+          <div class="dropdown-container">
+            <input class="form-control" :disabled="!isTicketEditable" id="engineer" v-model="engineerSearch" @focus="showDropdowns.engineer = true" @input="getDataFunction" @dblclick="getDetails('assignee', ticket.primary[0].user_id)" placeholder="Dodaj primarnega reševalca" required/>
+            <ul v-if="showDropdowns.engineer">
+              <li v-for="user in filteredEngineers" :key="user.id" @click="selectEngineer(user)">
+                {{ user.name }}
+              </li>
+            </ul>
+          </div>
         </div>
       </div>  
 
@@ -1253,6 +1259,7 @@ const redirectToParentTicket = () => {
             </ul>
           </div>
         </div>
+        
         <div class="form-group">
           <label>Dodatni reševalci</label>
             <div class="dropdown-container">
