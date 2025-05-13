@@ -46,7 +46,7 @@ const router = useRouter();
 const sortColumn = ref<string | null>(null);
 const sortDirection = ref<'asc' | 'desc'>('asc');
 const currentPage = ref(1);
-const ticketsPerPage = 15;
+const ticketsPerPage = 25;
 const isLoading = ref(false);
 
 onMounted(async () => {

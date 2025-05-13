@@ -18,7 +18,7 @@ interface Company {
 
 const companies = ref<Company[]>([])
 const currentPage = ref(1)
-const itemsPerPage = 15
+const itemsPerPage = 25
 const searchQuery = ref('')
 const sortColumn = ref<keyof Company>('company_id')
 const sortDirection = ref<'asc' | 'desc'>('asc')
