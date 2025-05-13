@@ -389,7 +389,7 @@ ALTER TABLE ONLY public.users ALTER COLUMN user_id SET DEFAULT nextval('public.u
 --
 
 COPY public.assigment_group (group_id, group_name, description, email, created_at, updated_at) FROM stdin;
-14	Druga skupina	ostali	mskrabolje@nil.com	2025-03-03 19:40:18.255419	2025-05-10 01:47:31.818298
+14	Druga skupina	ostali	mihaskrabolje@podjetje.com	2025-03-03 19:40:18.255419	2025-05-10 01:47:31.818298
 1	IT Podpora	Brez nje ne bi obstajali!	tikit.group@protonmail.com	2025-02-24 01:16:59.372616	2025-05-10 02:50:50.318925
 \.
 
@@ -399,7 +399,7 @@ COPY public.assigment_group (group_id, group_name, description, email, created_a
 --
 
 COPY public.company (company_id, company_name, email, phone, street, city, post_code, country, notes, created_at, updated_at) FROM stdin;
-2	NIL	nil@nil.com	123456789	Baragova 5	Ljubljana	1000	Slovenia	Nil is the best in the word	2025-03-01 13:04:21.953465	2025-03-01 14:56:14.532007
+2	NIL	company@company.com	123456789	Baragova 5	Ljubljana	1000	Slovenia	Nil is the best in the word	2025-03-01 13:04:21.953465	2025-03-01 14:56:14.532007
 28	FRI	fri@fri.si	123456789	Večna pot 113	Ljubljana	1000	Slovenija	Fri is the best	2025-04-24 13:25:57.159986	2025-04-24 13:25:57.159986
 3	CISCO	cisco@cisco.com	123456789	Example street 10	Ljubljana	1000	Slovenija	Networking baby :)	2025-03-01 14:23:14.860364	2025-05-10 01:00:01.788952
 1	Banka XYZ	bank@bank.com	+123456789	Tržaška cesta 20	Ljubljana	1000	Slovenija	Leading bank	2025-02-24 01:16:59.372616	2025-05-10 01:00:56.358383
