@@ -1207,7 +1207,7 @@ const redirectToParentTicket = () => {
         </div>
         <!-- Skupina -->
         <div class="form-group">
-          <label for="group">Assigment group</label>
+          <label for="group">Delovna skupina</label>
           <div class="dropdown-container">
             <input class="form-control" :disabled="!isTicketEditable" id="group" v-model="groupSearch" @focus="showDropdowns.group = true" type="text" placeholder="Iskanje skupine" @input="getDataFunction" @dblclick="getDetails('group', ticket.ticket.group_id)" required />
             <ul v-if="showDropdowns.group">

@@ -438,7 +438,7 @@ const resetAllFieldsButton = () => {
         </div>
 
         <div class="form-group">
-          <label for="group">Skupina</label>
+          <label for="group">Delovna skupina</label>
           <div class="dropdown-container">
             <input class="form-control" id="group" v-model="groupSearch" @focus="showDropdowns.group = true" type="text" placeholder="Iskanje skupine" required />
             <ul v-if="showDropdowns.group">
